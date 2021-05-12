@@ -83,36 +83,20 @@
          <property name="title">
           <string>Display</string>
          </property>
-         <layout class="QFormLayout" name="formLayout_2">
-          <item row="1" column="0">
-           <widget class="QLabel" name="label_xaxis">
-            <property name="text">
-             <string>X axis</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="1">
-           <widget class="QComboBox" name="comboBox_xaxis"/>
-          </item>
-          <item row="2" column="0">
-           <widget class="QLabel" name="label_yaxis">
-            <property name="text">
-             <string>Y axis</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="1">
-           <widget class="QComboBox" name="comboBox_yaxis"/>
-          </item>
-          <item row="0" column="0">
-           <widget class="QLabel" name="label_filePattern">
-            <property name="text">
-             <string>File pattern</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="1">
-           <widget class="QLineEdit" name="lineEdit_filePattern"/>
+         <layout class="QVBoxLayout" name="verticalLayout_3">
+          <item>
+           <layout class="QGridLayout" name="gridLayout_display">
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_filePattern">
+              <property name="text">
+               <string>File pattern</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QLineEdit" name="lineEdit_filePattern"/>
+            </item>
+           </layout>
           </item>
          </layout>
         </widget>

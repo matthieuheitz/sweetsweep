@@ -15,6 +15,22 @@ from PyQt5.QtWidgets import QLabel, QFileDialog, QComboBox, QGraphicsPixmapItem,
 from PyQt5.QtGui import QPixmap
 
 
+# Because I use a "trick" to hide items of a QComboBox through its QListView,
+# scrolling on a normal QComboBox lets me select items that are hidden, which is
+# not desirable. So we override the class to prevent that.
+class MyQComboBox(QComboBox):
+    def wheelEvent(self, event):
+        increment = 1 if event.angleDelta().y() < 0 else -1
+        index = self.currentIndex()+increment
+        if not (0 <= index < self.count()): return
+        lv = self.view()
+        while lv.isRowHidden(index) and 0 < index < self.count()-1:
+            index += increment
+        # If we got out of the loop and new index is hidden, we are on a hidden boundary item, so don't increment.
+        if not lv.isRowHidden(index):
+            self.setCurrentIndex(index)
+
+
 class Ui(QtWidgets.QMainWindow):
     def __init__(self):
         super(Ui, self).__init__()  # Call the inherited classes __init__ method
@@ -33,12 +49,26 @@ class Ui(QtWidgets.QMainWindow):
         self.defaultConfigFile = "sweep.txt"
         self.paramDict = OrderedDict()     # Holds current values of parameters to display
         self.fullParamDict = OrderedDict()     # Holds all possible values of each parameter
+        self.allParamNames = []
         self.paramControlType = "combobox"   # "slider" or "combobox"
+        self.comboBox_noneChoice = "--None--"
+        self.xaxis = self.comboBox_noneChoice
+        self.yaxis = self.comboBox_noneChoice
         self.filePattern = ""
         self.currentDir = ""
 
         # View
         self.paramControlWidgetList = []
+        # Set up X and Y axis comboboxes
+        self.gridLayout_display.addWidget(QLabel("X axis"), 1, 0)
+        self.gridLayout_display.addWidget(QLabel("Y axis"), 2, 0)
+        self.comboBox_xaxis = MyQComboBox()
+        self.comboBox_yaxis = MyQComboBox()
+        self.comboBox_xaxis.addItem(self.comboBox_noneChoice)
+        self.comboBox_yaxis.addItem(self.comboBox_noneChoice)
+        self.gridLayout_display.addWidget(self.comboBox_xaxis, 1, 1)
+        self.gridLayout_display.addWidget(self.comboBox_yaxis, 2, 1)
+
         self.scene = QtWidgets.QGraphicsScene()
         # self.graphicsView.scale(1,-1) # Flip the y axis, but it also flips images
         self.graphicsView.setScene(self.scene)
@@ -51,6 +81,8 @@ class Ui(QtWidgets.QMainWindow):
         self.pushButton_mainFolder.pressed.connect(self.mainFolder_browse)
         self.pushButton_configFile.pressed.connect(self.configFile_browse)
         self.pushButton_clearLog.pressed.connect(self.log_clear)
+        self.comboBox_xaxis.currentTextChanged.connect(self.comboBoxAxis_changed)
+        self.comboBox_yaxis.currentTextChanged.connect(self.comboBoxAxis_changed)
 
 
         # This changes the limit of the current view, ie what we see of the scene through the widget.
@@ -127,8 +159,13 @@ class Ui(QtWidgets.QMainWindow):
         # https://stackoverflow.com/a/13103617/4195725
         for i in reversed(range(self.gridLayout_paramControl.count())):
             self.gridLayout_paramControl.itemAt(i).widget().setParent(None)
+        # Reset comboboxes
+        self.comboBox_xaxis.clear()
+        self.comboBox_yaxis.clear()
+        self.comboBox_xaxis.addItem(self.comboBox_noneChoice)
+        self.comboBox_yaxis.addItem(self.comboBox_noneChoice)
+        # Redraw
         self.draw_graphics()
-
 
     def configFile_changed(self, path):
         # Check if it's a valid file
@@ -144,28 +181,67 @@ class Ui(QtWidgets.QMainWindow):
             self.print("Error: the config file should be a json file")
             self.configFile_invalid()
             return
+        # Get list of all parameter names
+        self.allParamNames = list(self.fullParamDict.keys())
         # Populate the parameter controls
-        for i,(param,values) in enumerate(self.fullParamDict.items()):
+        self.populate_parameterControls()
+        # Populate the axis comboboxes
+        self.comboBox_xaxis.addItems(self.allParamNames)
+        self.comboBox_yaxis.addItems(self.allParamNames)
+        # Redraw
+        self.draw_graphics()
+
+    def populate_parameterControls(self):
+        for i, (param,values) in enumerate(self.fullParamDict.items()):
+            values = self.fullParamDict[param]
             textWidget = controlWidget = None
             if self.paramControlType == "combobox":
                 textWidget = QLabel(param)
                 controlWidget = QComboBox()
                 controlWidget.addItems([str(v) for v in values])
-            elif self.paramControlType == "slider":
-                print("Not implemented")
-                # textWidget = QLabel(param)
-                # controlWidget = QSlider(Qt.Horizontal, self)
-                # controlWidget.setRange(0, 100)
-                # controlWidget.setFocusPolicy(Qt.NoFocus)
             else:
                 print("Not implemented")
             self.paramControlWidgetList.append(controlWidget)
-            self.gridLayout_paramControl.addWidget(textWidget,i,0)
-            self.gridLayout_paramControl.addWidget(controlWidget,i,1)
+            self.gridLayout_paramControl.addWidget(textWidget, i, 0)
+            self.gridLayout_paramControl.addWidget(controlWidget, i, 1)
             # Connect signals
             self.paramControlWidgetList[i].currentIndexChanged.connect(self.paramControl_changed)
-            # Set the current parameter values
+            # Initialize paramDict with first value of each parameter
             self.paramDict[param] = values[0]
+
+    def comboBoxAxis_changed(self, text):
+        #  If xaxis has changed
+        #   If xaxis is a parameter other than None:
+        #   - Remove param from paramDict, the control widgets and the combobox of yaxis
+        #   If previous value was a parameter other than None:
+        #   - Restore the previous param to paramDict, the control widgets and the combobox of yaxis
+        #   Finally, store the new selection in xaxis
+        #  Else if yaxis has change
+        #   Vice versa
+
+        def update_xyComboBox(combo_current, prev_param, combo_other):
+            # If the new selection is not None, hide it where necessary
+            param = combo_current.currentText()
+            if param != self.comboBox_noneChoice:
+                param_index = self.allParamNames.index(param)
+                self.paramDict[param] = None
+                self.paramControlWidgetList[param_index].setEnabled(False)
+                combo_other.view().setRowHidden(param_index+1, True)
+            # If the previous selection was not None, restore it where necessary
+            if prev_param != self.comboBox_noneChoice:
+                param_index = self.allParamNames.index(prev_param)
+                self.paramDict[prev_param] = self.fullParamDict[prev_param][self.paramControlWidgetList[param_index].currentIndex()]  # Restore to previous value
+                self.paramControlWidgetList[param_index].setEnabled(True)
+                combo_other.view().setRowHidden(param_index+1, False)
+
+        if self.sender() is self.comboBox_xaxis:
+            update_xyComboBox(self.comboBox_xaxis, self.xaxis, self.comboBox_yaxis)
+            self.xaxis = self.comboBox_xaxis.currentText()
+        elif self.sender() is self.comboBox_yaxis:
+            update_xyComboBox(self.comboBox_yaxis, self.yaxis, self.comboBox_xaxis)
+            self.yaxis = self.comboBox_yaxis.currentText()
+
+        # Redraw
         self.draw_graphics()
 
     def filePattern_changed(self, pattern):
@@ -178,7 +254,7 @@ class Ui(QtWidgets.QMainWindow):
         # Identify the sender
         id_sender = self.paramControlWidgetList.index(self.sender())
         # Get parameter name
-        param = list(self.paramDict.keys())[id_sender]
+        param = self.allParamNames[id_sender]
         # Change current parameter
         self.paramDict[param] = self.fullParamDict[param][index]
         # Redraw
