@@ -130,9 +130,9 @@ class Ui(QtWidgets.QMainWindow):
         # self.print(str(self.graphicsView.viewport().size()))    # Prints the size of the widget, not the scene bounding box coordinates
 
         # DEBUG
-        # self.lineEdit_mainFolder.setText("/home/matthieu/Work/Postdoc-UBC/Projects/trajectory_inference/DGCG_scRNAseq/examples/results_reprog_umap_2d_ss10__sig_ab_multistart")
-        # time.sleep(0.5)
-        # self.lineEdit_filePattern.setText("iter_001_insertion.png")
+        self.lineEdit_mainFolder.setText("/home/matthieu/Work/Postdoc-UBC/Projects/trajectory_inference/DGCG_scRNAseq/examples/results_reprog_umap_2d_ss10__sig_ab_multistart")
+        time.sleep(0.5)
+        self.lineEdit_filePattern.setText("iter_001_insertion.png")
         # self.lineEdit_filePattern.setText("iter_*_insertion.png[-1]")
 
 
@@ -226,7 +226,6 @@ class Ui(QtWidgets.QMainWindow):
 
     def populate_parameterControls(self):
         for i, (param,values) in enumerate(self.fullParamDict.items()):
-            values = self.fullParamDict[param]
             textWidget = controlWidget = None
             if self.paramControlType == "combobox":
                 textWidget = QLabel(param)
