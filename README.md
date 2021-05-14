@@ -57,3 +57,14 @@ parameter values
 - You can also add the meta parameter `viewer_cropLBRT` in this config file,
   e.g.: `"viewer_cropLBRT": [35,40,30,15],` and the application will load 
   these values for cropping images (LBRT: Left,Bottom,Right,Top).
+
+### Miscellaneous
+
+- The app can access mounted folders, which is great to avoid copying to your
+  computer all result folders from the server on which you ran the sweep.
+  I only tried on Linux with a folder mounted with `sftp`, in which case the URL
+  you need to provide is:
+  `/run/user/$uid/gvfs/sftp:host=<host>,user=<user>/path/to/folder`.
+  Replace `<host>` by the host name, `<user>` by your username, `$uid` by
+  your user id, which you can get by running `id -u` (it is `1000` if you are the
+  only user on your system), and `path/to/folder` by the path to the remote folder.

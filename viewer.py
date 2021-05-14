@@ -17,7 +17,6 @@ from PyQt5.QtGui import QPixmap, QPen, QColor, QImage, QPainter, QFont
 
 # TODO
 #  - Add font size factor spinbox
-#  - Make it work for a network-mounted directory (see `QFileDialog::getExistingDirectoryUrl`)
 #  - Add automatic file naming when saving
 #  - Add name pattern that support taking last file of the matches
 #  - Find individual folders by combination index
@@ -96,9 +95,9 @@ class Ui(QtWidgets.QMainWindow):
         self.show() # Show the GUI
 
         # Connect widgets
-        self.lineEdit_mainFolder.textChanged.connect(self.mainFolder_changed)
-        self.lineEdit_configFile.textChanged.connect(self.configFile_changed)
-        self.lineEdit_filePattern.textChanged.connect(self.filePattern_changed)
+        self.lineEdit_mainFolder.editingFinished.connect(self.mainFolder_changed)
+        self.lineEdit_configFile.editingFinished.connect(self.configFile_changed)
+        self.lineEdit_filePattern.editingFinished.connect(self.filePattern_changed)
         self.pushButton_mainFolder.pressed.connect(self.mainFolder_browse)
         self.pushButton_configFile.pressed.connect(self.configFile_browse)
         self.pushButton_clearLog.pressed.connect(self.log_clear)
@@ -131,8 +130,10 @@ class Ui(QtWidgets.QMainWindow):
 
         # DEBUG
         self.lineEdit_mainFolder.setText("/home/matthieu/Work/Postdoc-UBC/Projects/trajectory_inference/DGCG_scRNAseq/examples/results_reprog_umap_2d_ss10__sig_ab_multistart")
+        self.mainFolder_changed()
         time.sleep(0.5)
         self.lineEdit_filePattern.setText("iter_001_insertion.png")
+        self.filePattern_changed()
         # self.lineEdit_filePattern.setText("iter_*_insertion.png[-1]")
 
 
@@ -152,8 +153,10 @@ class Ui(QtWidgets.QMainWindow):
         if dir:
             self.mainFolder = dir
         self.lineEdit_mainFolder.setText(self.mainFolder)
+        self.mainFolder_changed()
 
-    def mainFolder_changed(self, path):
+    def mainFolder_changed(self):
+        path = self.lineEdit_mainFolder.text()
         # Check if it's a valid folder
         if not os.path.isdir(path):
             self.lineEdit_mainFolder.setStyleSheet("color: red;")
@@ -165,6 +168,7 @@ class Ui(QtWidgets.QMainWindow):
         # Check if there is a config file
         if os.path.isfile(os.path.join(self.mainFolder,self.defaultConfigFile)):
             self.lineEdit_configFile.setText(os.path.join(self.mainFolder,self.defaultConfigFile))
+            self.configFile_changed()
         else:
             self.print("No config file 'sweep.txt' found in %s. Please provide it manually."%self.mainFolder)
             return
@@ -177,6 +181,7 @@ class Ui(QtWidgets.QMainWindow):
         if file:
             self.configFile = file
         self.lineEdit_configFile.setText(self.configFile)
+        self.configFile_changed()
 
     def configFile_invalid(self):
         self.lineEdit_configFile.setStyleSheet("color: red;")
@@ -200,7 +205,8 @@ class Ui(QtWidgets.QMainWindow):
         # Redraw
         self.draw_graphics()
 
-    def configFile_changed(self, path):
+    def configFile_changed(self):
+        path = self.lineEdit_configFile.text()
         # Check if it's a valid file
         if not os.path.isfile(path):
             self.configFile_invalid()
@@ -284,8 +290,8 @@ class Ui(QtWidgets.QMainWindow):
         # Redraw
         self.draw_graphics()
 
-    def filePattern_changed(self, pattern):
-        self.filePattern = pattern
+    def filePattern_changed(self):
+        self.filePattern = self.lineEdit_filePattern.text()
         # Redraw
         self.draw_graphics()
 
