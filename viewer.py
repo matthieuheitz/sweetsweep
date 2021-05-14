@@ -182,16 +182,21 @@ class Ui(QtWidgets.QMainWindow):
         self.lineEdit_configFile.setStyleSheet("color: red;")
         self.fullParamDict = {}
         self.paramDict = {}
+        self.allParamNames = []
         self.paramControlWidgetList.clear()
         # Delete all parameter control widgets
         # https://stackoverflow.com/a/13103617/4195725
         for i in reversed(range(self.gridLayout_paramControl.count())):
             self.gridLayout_paramControl.itemAt(i).widget().setParent(None)
         # Reset comboboxes
+        self.comboBox_xaxis.blockSignals(True)
+        self.comboBox_yaxis.blockSignals(True)
         self.comboBox_xaxis.clear()
         self.comboBox_yaxis.clear()
         self.comboBox_xaxis.addItem(self.comboBox_noneChoice)
         self.comboBox_yaxis.addItem(self.comboBox_noneChoice)
+        self.comboBox_xaxis.blockSignals(False)
+        self.comboBox_yaxis.blockSignals(False)
         # Redraw
         self.draw_graphics()
 
@@ -200,6 +205,9 @@ class Ui(QtWidgets.QMainWindow):
         if not os.path.isfile(path):
             self.configFile_invalid()
             return
+        # First clear all parameter controls and axis comboboxes
+        self.configFile_invalid()
+        # Then redo everything with the new config file
         self.lineEdit_configFile.setStyleSheet("color: black;")
         self.configFile = path
         # Read parameters from file and keep their order
