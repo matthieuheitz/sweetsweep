@@ -95,8 +95,8 @@ class Ui(QtWidgets.QMainWindow):
         self.show() # Show the GUI
 
         # Connect widgets
-        self.lineEdit_mainFolder.editingFinished.connect(self.mainFolder_changed)
-        self.lineEdit_configFile.editingFinished.connect(self.configFile_changed)
+        self.lineEdit_mainFolder.textChanged.connect(self.mainFolder_changed)
+        self.lineEdit_configFile.textChanged.connect(self.configFile_changed)
         self.lineEdit_filePattern.editingFinished.connect(self.filePattern_changed)
         self.pushButton_mainFolder.pressed.connect(self.mainFolder_browse)
         self.pushButton_configFile.pressed.connect(self.configFile_browse)
@@ -130,7 +130,6 @@ class Ui(QtWidgets.QMainWindow):
 
         # DEBUG
         # self.lineEdit_mainFolder.setText("")
-        # self.mainFolder_changed()
         # time.sleep(0.5)
         # self.lineEdit_filePattern.setText("")
         # self.filePattern_changed()
@@ -152,10 +151,8 @@ class Ui(QtWidgets.QMainWindow):
         if dir:
             self.mainFolder = dir
         self.lineEdit_mainFolder.setText(self.mainFolder)
-        self.mainFolder_changed()
 
-    def mainFolder_changed(self):
-        path = self.lineEdit_mainFolder.text()
+    def mainFolder_changed(self, path):
         # Check if it's a valid folder
         if not os.path.isdir(path):
             self.lineEdit_mainFolder.setStyleSheet("color: red;")
@@ -167,7 +164,6 @@ class Ui(QtWidgets.QMainWindow):
         # Check if there is a config file
         if os.path.isfile(os.path.join(self.mainFolder,self.defaultConfigFile)):
             self.lineEdit_configFile.setText(os.path.join(self.mainFolder,self.defaultConfigFile))
-            self.configFile_changed()
         else:
             self.print("No config file 'sweep.txt' found in %s. Please provide it manually."%self.mainFolder)
             return
@@ -180,7 +176,6 @@ class Ui(QtWidgets.QMainWindow):
         if file:
             self.configFile = file
         self.lineEdit_configFile.setText(self.configFile)
-        self.configFile_changed()
 
     def configFile_invalid(self):
         self.lineEdit_configFile.setStyleSheet("color: red;")
@@ -204,8 +199,7 @@ class Ui(QtWidgets.QMainWindow):
         # Redraw
         self.draw_graphics()
 
-    def configFile_changed(self):
-        path = self.lineEdit_configFile.text()
+    def configFile_changed(self, path):
         # Check if it's a valid file
         if not os.path.isfile(path):
             self.configFile_invalid()
