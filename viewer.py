@@ -359,12 +359,14 @@ class Ui(QtWidgets.QMainWindow):
                 dirs = used_dirs.copy()
                 if ival is not None: dirs = [d for d in dirs if self.yaxis+str(ival) in d]
                 if jval is not None: dirs = [d for d in dirs if self.xaxis+str(jval) in d]
-                if len(dirs) == 0: self.print("Error: no folder matches the set of parameters"); return
-                if len(dirs) > 1: self.print("Error: multiple folders match the set of parameters:", dirs); return
+                if len(dirs) == 0: self.print("Error: no folder matches the set of parameters"); pass
+                if len(dirs) > 1: self.print("Error: multiple folders match the set of parameters:", dirs); pass
                 currentDir = dirs[0]
                 # Check if file exists
                 file = os.path.join(self.mainFolder, currentDir, self.filePattern)
-                if not os.path.isfile(file): self.print("Error: no file in the folder matches the pattern."); return
+                if not os.path.isfile(file):
+                    self.print("Error: no file in the folder matches the pattern.")
+                    pass
                 # Load the image
                 p = QPixmap(file)
                 # This way of drawing assumes all images have the size of the first image
