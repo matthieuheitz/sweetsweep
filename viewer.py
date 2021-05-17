@@ -4,24 +4,25 @@ import os
 import sys
 import time
 import json
+import numpy as np
 from collections import OrderedDict
 import glob
 
-
-
 from PyQt5 import QtCore, QtWidgets, uic
-from PyQt5.QtCore import Qt, QRect, QRectF, QPoint, QPointF, QSize
-from PyQt5.QtWidgets import QLabel, QFileDialog, QComboBox, QGraphicsPixmapItem, QDesktopWidget, QGraphicsTextItem
+from PyQt5.QtCore import Qt, QRect, QRectF, QPoint, QPointF, QSize, QSizeF, QLineF
+from PyQt5.QtWidgets import QLabel, QFileDialog, QComboBox, QGraphicsPixmapItem, QDesktopWidget, QGraphicsTextItem, QGraphicsLineItem
 from PyQt5.QtGui import QPixmap, QPen, QColor, QImage, QPainter, QFont
 
 
 # TODO
 #  - Add font size factor spinbox
+#  - Don't reload images if only changing a display parameter
+#  - Bug when changing folders (from local folder to the sftp folder)
 #  - Add automatic file naming when saving
 #  - Add name pattern that support taking last file of the matches
 #  - Find individual folders by combination index
 #  - In grid mode, select a subset of values to plot
-#  - PDF support
+#  - PDF support?
 #  - Zoom in on the figures
 
 
@@ -39,6 +40,13 @@ class MyQComboBox(QComboBox):
         # If we got out of the loop and new index is hidden, we are on a hidden boundary item, so don't increment.
         if not lv.isRowHidden(index):
             self.setCurrentIndex(index)
+
+
+# Make basic types iterable to print them more easily
+QSize.__iter__ = lambda s: iter([s.width(),s.height()])
+QSizeF.__iter__ = lambda s: iter([s.width(),s.height()])
+QPoint.__iter__ = lambda s: iter([s.x(),s.y()])
+QPointF.__iter__ = lambda s: iter([s.x(),s.y()])
 
 
 class Ui(QtWidgets.QMainWindow):
@@ -350,58 +358,82 @@ class Ui(QtWidgets.QMainWindow):
         for param, value in self.paramDict.items():
             if len(value) == 1:
                 used_dirs = [d for d in used_dirs if param+str(value[0]) in d]
-        imWidth = 0
-        imHeight = 0
+        imagePaths = np.full((nValuesY,nValuesX), "", dtype=object)
         for i, ival in enumerate(yrange):
             for j, jval in enumerate(xrange):
                 # Find the correct folder
                 dirs = used_dirs.copy()
                 if ival is not None: dirs = [d for d in dirs if self.yaxis+str(ival) in d]
                 if jval is not None: dirs = [d for d in dirs if self.xaxis+str(jval) in d]
-                if len(dirs) == 0: self.print("Error: no folder matches the set of parameters"); pass
-                if len(dirs) > 1: self.print("Error: multiple folders match the set of parameters:", dirs); pass
+                if len(dirs) == 0: self.print("Error: no folder matches the set of parameters"); continue
+                if len(dirs) > 1: self.print("Error: multiple folders match the set of parameters:", dirs); continue
                 currentDir = dirs[0]
                 # Check if file exists
                 file = os.path.join(self.mainFolder, currentDir, self.filePattern)
                 if not os.path.isfile(file):
                     self.print("Error: no file in the folder matches the pattern.")
-                    pass
-                # Load the image
-                p = QPixmap(file)
-                # This way of drawing assumes all images have the size of the first image
-                # Crop the image
-                cropRect = self.getImageCroppingRect(p)
-                pc = p.copy(cropRect)
+                    continue
+                imagePaths[i,j] = file
 
-                if i == 0 and j == 0:
-                    # Get image dimension
-                    imWidth = pc.width()
-                    imHeight = pc.height()
+        # If we didn't find any images, stop drawing
+        if np.all(imagePaths == ""):
+            return
 
-                    # Get dimensions
-                    viewSize = self.graphicsView.size()
-                    sceneSize = QSize(nValuesX*(imWidth+self.imageSpacing[0]), nValuesY*(imHeight+self.imageSpacing[1]))
-                    maxViewSize = max(viewSize.width(), viewSize.height())
-                    maxSceneSize = max(sceneSize.width(), sceneSize.height())
-                    # print("Image size:",sceneSize)
-                    # print("View size:",self.graphicsView.size())
-                    # print("Point size:",txt.font().pointSize())
-                    # It's very difficult to find a formula that gives a good font size in all situations, because it
-                    # depends on the size of the images, and the number of images (so the size of the drawing).
-                    # But for confortable viewing, it should also depend on how large the graphicsview widget is, even
-                    # though the content of that window should be agnostic to the size of the window we visualize it in.
-                    # fontSize = 60
-                    # fontSize = int(maxSceneSize/40)
-                    fontSize = int(maxSceneSize / maxViewSize * 20)
-                    # Spacing between labels and images
-                    # labelSpacing = max(imWidth,imHeight)/20
-                    labelSpacing = fontSize*0.75
+        # Assume all image dimensions are those of the first valid image
+        imIndex = np.argmax(imagePaths.flatten() != "")
+        p = QPixmap(imagePaths.flatten()[imIndex])
+        cropRect = self.getImageCroppingRect(p)
+        pc = p.copy(cropRect)
+        # Get image dimension after cropping
+        imWidth = pc.width()
+        imHeight = pc.height()
 
-                # Draw the image
-                imageItem = QGraphicsPixmapItem(pc)
-                imagePos = QPointF(j*(imWidth + self.imageSpacing[0]), i*(imHeight + self.imageSpacing[1]))
-                imageItem.setOffset(imagePos)
-                self.scene.addItem(imageItem)
+        # Get dimensions of the scene to compute font size
+        viewSize = self.graphicsView.size()
+        sceneSize = QSize(nValuesX*(imWidth+self.imageSpacing[0]), nValuesY*(imHeight+self.imageSpacing[1]))
+        maxViewSize = max(viewSize.width(), viewSize.height())
+        maxSceneSize = max(sceneSize.width(), sceneSize.height())
+        # print("Image size:",sceneSize)
+        # print("View size:",self.graphicsView.size())
+        # print("Point size:",txt.font().pointSize())
+        # It's very difficult to find a formula that gives a good font size in all situations, because it
+        # depends on the size of the images, and the number of images (so the size of the drawing).
+        # But for confortable viewing, it should also depend on how large the graphicsview widget is, even
+        # though the content of that window should be agnostic to the size of the window we visualize it in.
+        # fontSize = 60
+        # fontSize = int(maxSceneSize/40)
+        fontSize = int(maxSceneSize / maxViewSize * 20)
+        # Spacing between labels and images
+        # labelSpacing = max(imWidth,imHeight)/20
+        labelSpacing = fontSize*0.75
+
+        # Draw images and labels
+        for i, ival in enumerate(yrange):
+            for j, jval in enumerate(xrange):
+
+                # Compute image position and frame size
+                imagePos = QPointF(j * (imWidth + self.imageSpacing[0]), i * (imHeight + self.imageSpacing[1]))
+                frameRect = QRectF(imagePos,QSizeF(cropRect.size()))
+
+                # Draw existing images
+                if imagePaths[i,j]:
+                    # Load the image
+                    p = QPixmap(imagePaths[i,j])
+                    # This way of drawing assumes all images have the size of the first image
+                    # Crop the image
+                    pc = p.copy(cropRect)
+
+                    # Draw the image
+                    imageItem = QGraphicsPixmapItem(pc)
+                    imageItem.setOffset(imagePos)
+                    self.scene.addItem(imageItem)
+                # Draw placeholders where there are no images
+                else:
+                    rect = QRectF(QPointF(),frameRect.size()*0.5)
+                    rect.moveCenter(frameRect.center())
+                    pen = QPen(QColor(self.imageFrameColor),5)
+                    self.scene.addLine(QLineF(rect.topLeft(),rect.bottomRight()),pen)
+                    self.scene.addLine(QLineF(rect.bottomLeft(),rect.topRight()),pen)
 
                 # Draw top labels if X axis is not None
                 if jval is not None and i == 0:
@@ -410,7 +442,7 @@ class Ui(QtWidgets.QMainWindow):
                     textItem.setPlainText(self.xaxis+"="+str(jval))
                     textBR = textItem.sceneBoundingRect()
                     # height/10 is the arbitary spacing that separates labels from images
-                    # Substract textBR.height() on Y so that the bottom of the text is always imHeight/10 from the image
+                    # Subtract textBR.height() on Y so that the bottom of the text is always imHeight/10 from the image
                     textItem.setPos(imagePos + QPointF(imWidth/2 - textBR.width()/2, -labelSpacing - textBR.height()))
                     self.scene.addItem(textItem)
 
@@ -426,8 +458,6 @@ class Ui(QtWidgets.QMainWindow):
 
                 # Draw frames
                 if self.imageFrameLineWidth != 0:
-                    frameRect = QRectF(cropRect)
-                    frameRect.moveTopLeft(imagePos)
                     self.scene.addRect(frameRect,QPen(QColor(self.imageFrameColor),self.imageFrameLineWidth))
 
 
@@ -464,9 +494,9 @@ class Ui(QtWidgets.QMainWindow):
 
     def printImageSizesInLabel(self):
         sceneSize = self.scene.sceneRect().size()
-        text = "Scene size: \t %dx%d\n"%(sceneSize.width(),sceneSize.height())
+        text = "Scene size:\t\t %dx%d\n"%(*sceneSize.toSize(),)
         outSize = (sceneSize*self.doubleSpinBox_ImageReduction.value()).toSize()
-        text += "Output image size: %dx%d"%(outSize.width(),outSize.height())
+        text += "Output image size:\t %dx%d"%(*outSize,)
         self.label_imageSize.setText(text)
 
     def imageReduction_changed(self, value):
