@@ -7,6 +7,7 @@ import json
 import numpy as np
 from collections import OrderedDict
 import glob
+import re
 
 from PyQt5 import QtCore, QtWidgets, uic
 from PyQt5.QtCore import Qt, QRect, QRectF, QPoint, QPointF, QSize, QSizeF, QLineF
@@ -17,7 +18,6 @@ from PyQt5.QtGui import QPixmap, QPen, QColor, QImage, QPainter, QFont
 # TODO
 #  - Add font size factor spinbox
 #  - Add automatic file naming when saving
-#  - Add name pattern that support taking last file of the matches
 #  - Find individual folders by combination index
 #  - In grid mode, select a subset of values to plot
 #  - PDF support?
@@ -411,6 +411,7 @@ class Ui(QtWidgets.QMainWindow):
                     used_dirs = [d for d in used_dirs if param+str(value[0]) in d]
             self.currentImagePaths = np.full((nValuesY,nValuesX), "", dtype=object)
             self.currentImages = np.full((nValuesY, nValuesX), None, dtype=object)
+            self.matchedPatterns = np.full((nValuesY, nValuesX),"",dtype=object)
             for i, ival in enumerate(yrange):
                 for j, jval in enumerate(xrange):
                     # Find the correct folder
@@ -420,10 +421,35 @@ class Ui(QtWidgets.QMainWindow):
                     if len(dirs) == 0: self.print("Error: no folder matches the set of parameters"); continue
                     if len(dirs) > 1: self.print("Error: multiple folders match the set of parameters:", dirs); continue
                     currentDir = dirs[0]
+
                     # Check if file exists
-                    file = os.path.join(self.mainFolder, currentDir, self.filePattern)
-                    if not os.path.isfile(file):
-                        continue
+                    # Check if it's a glob pattern
+                    if "*" in self.filePattern:
+                        bracketMatch = re.search("\[.*\]", self.filePattern)
+                        if bracketMatch is None:
+                            self.print("Error: When using glob pattern (with '*'), you must also specify an index enclosed in "
+                                       "brackets at the end of the pattern, like so: 'image_*.png[-1]' (which asks for "
+                                       "the last matching file).")
+                            return
+                        indexStr = bracketMatch.group()[1:-1]
+                        try:
+                            index = int(indexStr)
+                        except ValueError:
+                            self.print("Error: The content of the brackets in the file pattern must be a number.")
+                            return
+                        fullPattern = os.path.join(self.mainFolder, currentDir, self.filePattern[:bracketMatch.start()])
+                        files = sorted(glob.glob(fullPattern))
+                        if not (-len(files) <= index < len(files)):
+                            continue
+                        file = files[index]
+                        # Get the part of the filename that corresponds to the * in the pattern
+                        self.matchedPatterns[i,j] = file
+                        for f in fullPattern.split("*"):
+                            self.matchedPatterns[i,j] = self.matchedPatterns[i,j].replace(f, "")
+                    else:
+                        file = os.path.join(self.mainFolder, currentDir, self.filePattern)
+                        if not os.path.isfile(file):
+                            continue
                     self.currentImagePaths[i,j] = file
 
         # If we didn't find any images, stop drawing
@@ -436,7 +462,6 @@ class Ui(QtWidgets.QMainWindow):
         i,j = np.unravel_index(imIndex,self.currentImagePaths.shape)
         if reload_images:
             self.currentImages[i,j] = QPixmap(self.currentImagePaths[i,j])
-            print("Loading first image")
         cropRect = self.getImageCroppingRect(self.currentImages[i,j])
         pc = self.currentImages[i,j].copy(cropRect)
         # Get image dimension after cropping
@@ -475,7 +500,7 @@ class Ui(QtWidgets.QMainWindow):
                     # Load the image
                     if reload_images:
                         self.currentImages[i,j] = QPixmap(self.currentImagePaths[i,j])
-                        print("Loading image",i,j)
+                        # print("Loading image",i,j)
                     # This way of drawing assumes all images have the size of the first image
                     # Crop the image
                     pc = self.currentImages[i,j].copy(cropRect)
@@ -491,6 +516,15 @@ class Ui(QtWidgets.QMainWindow):
                     pen = QPen(QColor(self.imageFrameColor),5)
                     self.scene.addLine(QLineF(rect.topLeft(),rect.bottomRight()),pen)
                     self.scene.addLine(QLineF(rect.bottomLeft(),rect.topRight()),pen)
+
+                # Draw matched pattern if present
+                if self.matchedPatterns[i,j] != "":
+                    textItem = QGraphicsTextItem()
+                    textItem.setFont(QFont("Sans Serif",pointSize=fontSize//2))
+                    textItem.setPlainText(self.matchedPatterns[i,j])
+                    # textBR = textItem.sceneBoundingRect()
+                    textItem.setPos(imagePos)
+                    self.scene.addItem(textItem)
 
                 # Draw top labels if X axis is not None
                 if jval is not None and i == 0:
