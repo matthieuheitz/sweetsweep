@@ -274,6 +274,12 @@ class Ui(QtWidgets.QMainWindow):
         if "viewer_cropLBRT" in self.fullParamDict:
             self.set_cropLBRT(self.fullParamDict["viewer_cropLBRT"])
             del self.fullParamDict["viewer_cropLBRT"]
+        if "viewer_filePattern" in self.fullParamDict:
+            self.lineEdit_filePattern.setText(self.fullParamDict["viewer_filePattern"])
+            self.filePattern = self.fullParamDict["viewer_filePattern"]
+            del self.fullParamDict["viewer_filePattern"]
+            # No need to call self.filePattern_changed because we already set self.filePattern
+            # and later call draw_graphics()
 
         # Get list of all parameter names
         self.allParamNames = list(self.fullParamDict.keys())
