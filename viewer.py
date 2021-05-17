@@ -10,7 +10,7 @@ import glob
 
 from PyQt5 import QtCore, QtWidgets, uic
 from PyQt5.QtCore import Qt, QRect, QRectF, QPoint, QPointF, QSize, QSizeF, QLineF
-from PyQt5.QtWidgets import QLabel, QFileDialog, QComboBox, QGraphicsPixmapItem, QDesktopWidget, QGraphicsTextItem, QGraphicsLineItem
+from PyQt5.QtWidgets import QGraphicsView, QLabel, QFileDialog, QComboBox, QGraphicsPixmapItem, QDesktopWidget, QGraphicsTextItem, QGraphicsLineItem
 from PyQt5.QtGui import QPixmap, QPen, QColor, QImage, QPainter, QFont
 
 
@@ -21,7 +21,6 @@ from PyQt5.QtGui import QPixmap, QPen, QColor, QImage, QPainter, QFont
 #  - Find individual folders by combination index
 #  - In grid mode, select a subset of values to plot
 #  - PDF support?
-#  - Zoom in on the figures
 
 
 # Because I use a "trick" to hide items of a QComboBox through its QListView,
@@ -45,6 +44,56 @@ QSize.__iter__ = lambda s: iter([s.width(),s.height()])
 QSizeF.__iter__ = lambda s: iter([s.width(),s.height()])
 QPoint.__iter__ = lambda s: iter([s.x(),s.y()])
 QPointF.__iter__ = lambda s: iter([s.x(),s.y()])
+
+
+# Scene where we can zoom and move around with the mouse
+class MyQGraphicsView(QGraphicsView):
+    def __init__(self, parent):
+        super(MyQGraphicsView, self).__init__(parent)
+        self.zoom = 1
+        self.m_originX = 0
+        self.m_originY = 0
+
+    # Adapted from https://blog.automaton2000.com/2014/04/mouse-centered-zooming-in-qgraphicsview.html
+    def wheelEvent(self, event):
+        if event.angleDelta().x() == 0:
+            pos = event.pos()
+            posf = self.mapToScene(pos)
+            scaleFactor = 0.5
+            scale = 1 + event.angleDelta().y()/360*scaleFactor
+            self.scale(scale, scale)
+            w = self.viewport().width()
+            h = self.viewport().height()
+            wf = self.mapToScene(QPoint(w-1, 0)).x() - self.mapToScene(QPoint(0,0)).x()
+            hf = self.mapToScene(QPoint(0, h-1)).y() - self.mapToScene(QPoint(0,0)).y()
+            lf = posf.x() - pos.x() * wf / w
+            tf = posf.y() - pos.y() * hf / h
+            # try to set viewport properly
+            self.ensureVisible(lf, tf, wf, hf, 0, 0)
+            newPos = self.mapToScene(pos)
+            # It seems I don't need to do that:
+            # # readjust according to the still remaining offset/drift
+            # # I don't know how to do this any other way
+            # self.ensureVisible(QRectF(QPointF(lf, tf) - newPos + posf, QSizeF(wf, hf)), 0, 0)
+            event.accept()
+
+    # Taken from https://stackoverflow.com/a/35865262/4195725
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            # Store original position.
+            self.m_originX = event.x()
+            self.m_originY = event.y()
+
+    def mouseMoveEvent(self, event):
+        if event.buttons() & Qt.LeftButton:
+            oldP = self.mapToScene(self.m_originX, self.m_originY)
+            newP = self.mapToScene(event.pos())
+            translation = newP - oldP
+            self.setTransformationAnchor(QGraphicsView.NoAnchor)
+            self.translate(translation.x(), translation.y())
+            self.m_originX = event.x()
+            self.m_originY = event.y()
+
 
 
 class Ui(QtWidgets.QMainWindow):
@@ -80,22 +129,17 @@ class Ui(QtWidgets.QMainWindow):
 
         # View
         self.paramControlWidgetList = []
-        # Set up X and Y axis comboboxes
-        nRows = self.gridLayout_display.rowCount()
-        self.gridLayout_display.addWidget(QLabel("X axis"), nRows, 0)
-        self.gridLayout_display.addWidget(QLabel("Y axis"), nRows+1, 0)
-        self.comboBox_xaxis = MyQComboBox()
-        self.comboBox_yaxis = MyQComboBox()
         self.comboBox_xaxis.addItem(self.comboBox_noneChoice)
         self.comboBox_yaxis.addItem(self.comboBox_noneChoice)
-        self.gridLayout_display.addWidget(self.comboBox_xaxis, nRows, 1)
-        self.gridLayout_display.addWidget(self.comboBox_yaxis, nRows+1, 1)
         self.imageSpacing = [0,0]   # x and y spacing between images
         self.imageCrop = [0,0,0,0]  # how much to crop images in percentage [left,bottom,right,top]
         self.doubleSpinBox_cropList = [self.doubleSpinBox_cropL,self.doubleSpinBox_cropB,
                                        self.doubleSpinBox_cropR,self.doubleSpinBox_cropT]
         self.imageFrameLineWidth = 0
         self.imageFrameColor = "black"
+        self.sceneRect = None
+        self.viewRect = None
+        self.zoom = 1
 
         self.scene = QtWidgets.QGraphicsScene()
         # self.graphicsView.scale(1,-1) # Flip the y axis, but it also flips images
@@ -315,7 +359,7 @@ class Ui(QtWidgets.QMainWindow):
     def crop_changed(self, value):
         # Update the variable
         self.imageCrop = [w.value()/100 for w in self.doubleSpinBox_cropList]
-        self.draw_graphics(reload_images=False)
+        self.draw_graphics(reload_images=False, resetView=False)
 
     def set_cropLBRT(self, cropLBRT):
         self.imageCrop = cropLBRT
@@ -329,7 +373,7 @@ class Ui(QtWidgets.QMainWindow):
     def spacing_changed(self, value):
         # Update the variable
         self.imageSpacing = [self.spinBox_spacingX.value(),self.spinBox_spacingY.value()]
-        self.draw_graphics(reload_images=False)
+        self.draw_graphics(reload_images=False, resetView=False)
 
     def getImageCroppingRect(self, pixmap):
         return QRect(int(self.imageCrop[0] * pixmap.width()), int(self.imageCrop[3] * pixmap.height()),
@@ -338,13 +382,13 @@ class Ui(QtWidgets.QMainWindow):
 
     def frameLineWidth_changed(self, value):
         self.imageFrameLineWidth = value
-        self.draw_graphics(reload_images=False)
+        self.draw_graphics(reload_images=False, resetView=False)
 
     def frameColor_changed(self, text):
         self.imageFrameColor = text
-        self.draw_graphics(reload_images=False)
+        self.draw_graphics(reload_images=False, resetView=False)
 
-    def draw_graphics(self, reload_images=True):
+    def draw_graphics(self, reload_images=True, resetView=True):
         # print("Draw!")
         # Clear the scene before drawing
         self.scene.clear()
@@ -476,8 +520,9 @@ class Ui(QtWidgets.QMainWindow):
 
         # Add main title
         # Compute view rectangle
-        viewRect = self.scene.itemsBoundingRect()
-        # self.scene.addRect(viewRect)  # Plot the view rectangle
+        self.sceneRect = self.scene.itemsBoundingRect()
+        self.viewRect = QRectF(self.sceneRect)
+        # self.scene.addRect(self.viewRect)  # Plot the view rectangle
         textItem = QGraphicsTextItem()
         textItem.setFont(QFont("Sans Serif", pointSize=fontSize))
         text = ""
@@ -486,14 +531,15 @@ class Ui(QtWidgets.QMainWindow):
         if text: text = text[:-2]   # Remove trailing ", " if not empty
         textItem.setPlainText(text)
         textBR = textItem.sceneBoundingRect()
-        textItem.setPos(viewRect.center() - QPointF(textBR.width()/2, viewRect.height()/2 + labelSpacing + textBR.height()))
+        textItem.setPos(self.sceneRect.center() - QPointF(textBR.width()/2,
+                        self.sceneRect.height()/2 + labelSpacing + textBR.height()))
         self.scene.addItem(textItem)
 
         # Recompute view rectangle
-        viewRect = self.scene.itemsBoundingRect()
-        # self.scene.addRect(viewRect)  # Plot the view rectangle
+        self.sceneRect = self.scene.itemsBoundingRect()
+        # self.scene.addRect(self.sceneRect)  # Plot the scene rectangle
         # Readjust the view
-        self.graphicsView.fitInView(viewRect, Qt.KeepAspectRatio)
+        if resetView: self.graphicsView.fitInView(self.sceneRect, Qt.KeepAspectRatio)
         # Readjust the scrolling area
         self.scene.setSceneRect(self.scene.itemsBoundingRect())
         # Update show image size
