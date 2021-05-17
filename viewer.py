@@ -16,7 +16,6 @@ from PyQt5.QtGui import QPixmap, QPen, QColor, QImage, QPainter, QFont
 
 # TODO
 #  - Add font size factor spinbox
-#  - Don't reload images if only changing a display parameter
 #  - Bug when changing folders (from local folder to the sftp folder)
 #  - Add automatic file naming when saving
 #  - Add name pattern that support taking last file of the matches
@@ -73,6 +72,8 @@ class Ui(QtWidgets.QMainWindow):
         self.xaxis = self.comboBox_noneChoice
         self.yaxis = self.comboBox_noneChoice
         self.filePattern = ""
+        self.currentImages = None
+        self.currentImagePaths = None
 
         # Output
         self.defaultSaveFileName = "output.png"
@@ -146,7 +147,7 @@ class Ui(QtWidgets.QMainWindow):
     def resizeEvent(self, event):   # This is an overloaded function
         QtWidgets.QMainWindow.resizeEvent(self, event)
         # Redraw when window is resized
-        self.draw_graphics()
+        self.draw_graphics(reload_images=False)
 
     def print(self,txt):
         self.text_log.appendPlainText(txt)
@@ -310,7 +311,7 @@ class Ui(QtWidgets.QMainWindow):
     def crop_changed(self, value):
         # Update the variable
         self.imageCrop = [w.value()/100 for w in self.doubleSpinBox_cropList]
-        self.draw_graphics()
+        self.draw_graphics(reload_images=False)
 
     def set_cropLBRT(self, cropLBRT):
         self.imageCrop = cropLBRT
@@ -324,7 +325,7 @@ class Ui(QtWidgets.QMainWindow):
     def spacing_changed(self, value):
         # Update the variable
         self.imageSpacing = [self.spinBox_spacingX.value(),self.spinBox_spacingY.value()]
-        self.draw_graphics()
+        self.draw_graphics(reload_images=False)
 
     def getImageCroppingRect(self, pixmap):
         return QRect(int(self.imageCrop[0] * pixmap.width()), int(self.imageCrop[3] * pixmap.height()),
@@ -333,57 +334,63 @@ class Ui(QtWidgets.QMainWindow):
 
     def frameLineWidth_changed(self, value):
         self.imageFrameLineWidth = value
-        self.draw_graphics()
+        self.draw_graphics(reload_images=False)
 
     def frameColor_changed(self, text):
         self.imageFrameColor = text
-        self.draw_graphics()
+        self.draw_graphics(reload_images=False)
 
-    def draw_graphics(self):
+    def draw_graphics(self, reload_images=True):
         # print("Draw!")
         # Clear the scene before drawing
         self.scene.clear()
         # Check if any information is missing
         if not self.mainFolder or not self.paramDict or not self.filePattern:
             return
-        alldirs = [os.path.basename(f) for f in os.scandir(self.mainFolder) if f.is_dir()]
 
-        # This handles all configurations of the X and Y axis boxes
+        # Get number of images on each axis
         xrange = self.paramDict[self.xaxis] if self.xaxis != self.comboBox_noneChoice else [None]
         yrange = self.paramDict[self.yaxis] if self.yaxis != self.comboBox_noneChoice else [None]
         nValuesX = len(xrange)
         nValuesY = len(yrange)
-        used_dirs = alldirs.copy()
-        # Find dirs that match all single parameters
-        for param, value in self.paramDict.items():
-            if len(value) == 1:
-                used_dirs = [d for d in used_dirs if param+str(value[0]) in d]
-        imagePaths = np.full((nValuesY,nValuesX), "", dtype=object)
-        for i, ival in enumerate(yrange):
-            for j, jval in enumerate(xrange):
-                # Find the correct folder
-                dirs = used_dirs.copy()
-                if ival is not None: dirs = [d for d in dirs if self.yaxis+str(ival) in d]
-                if jval is not None: dirs = [d for d in dirs if self.xaxis+str(jval) in d]
-                if len(dirs) == 0: self.print("Error: no folder matches the set of parameters"); continue
-                if len(dirs) > 1: self.print("Error: multiple folders match the set of parameters:", dirs); continue
-                currentDir = dirs[0]
-                # Check if file exists
-                file = os.path.join(self.mainFolder, currentDir, self.filePattern)
-                if not os.path.isfile(file):
-                    self.print("Error: no file in the folder matches the pattern.")
-                    continue
-                imagePaths[i,j] = file
+
+        if reload_images or self.currentImagePaths is None:
+            alldirs = [os.path.basename(f) for f in os.scandir(self.mainFolder) if f.is_dir()]
+            used_dirs = alldirs.copy()
+            # Find dirs that match all single parameters
+            for param, value in self.paramDict.items():
+                if len(value) == 1:
+                    used_dirs = [d for d in used_dirs if param+str(value[0]) in d]
+            self.currentImagePaths = np.full((nValuesY,nValuesX), "", dtype=object)
+            self.currentImages = np.full((nValuesY, nValuesX), None, dtype=object)
+            for i, ival in enumerate(yrange):
+                for j, jval in enumerate(xrange):
+                    # Find the correct folder
+                    dirs = used_dirs.copy()
+                    if ival is not None: dirs = [d for d in dirs if self.yaxis+str(ival) in d]
+                    if jval is not None: dirs = [d for d in dirs if self.xaxis+str(jval) in d]
+                    if len(dirs) == 0: self.print("Error: no folder matches the set of parameters"); continue
+                    if len(dirs) > 1: self.print("Error: multiple folders match the set of parameters:", dirs); continue
+                    currentDir = dirs[0]
+                    # Check if file exists
+                    file = os.path.join(self.mainFolder, currentDir, self.filePattern)
+                    if not os.path.isfile(file):
+                        continue
+                    self.currentImagePaths[i,j] = file
 
         # If we didn't find any images, stop drawing
-        if np.all(imagePaths == ""):
+        if np.all(self.currentImagePaths == ""):
+            self.print("Error: no file in the folder(s) matches the pattern.")
             return
 
         # Assume all image dimensions are those of the first valid image
-        imIndex = np.argmax(imagePaths.flatten() != "")
-        p = QPixmap(imagePaths.flatten()[imIndex])
-        cropRect = self.getImageCroppingRect(p)
-        pc = p.copy(cropRect)
+        imIndex = np.argmax(self.currentImagePaths.flatten() != "")
+        i,j = np.unravel_index(imIndex,self.currentImagePaths.shape)
+        if reload_images:
+            self.currentImages[i,j] = QPixmap(self.currentImagePaths[i,j])
+            print("Loading first image")
+        cropRect = self.getImageCroppingRect(self.currentImages[i,j])
+        pc = self.currentImages[i,j].copy(cropRect)
         # Get image dimension after cropping
         imWidth = pc.width()
         imHeight = pc.height()
@@ -416,12 +423,14 @@ class Ui(QtWidgets.QMainWindow):
                 frameRect = QRectF(imagePos,QSizeF(cropRect.size()))
 
                 # Draw existing images
-                if imagePaths[i,j]:
+                if self.currentImagePaths[i,j]:
                     # Load the image
-                    p = QPixmap(imagePaths[i,j])
+                    if reload_images:
+                        self.currentImages[i,j] = QPixmap(self.currentImagePaths[i,j])
+                        print("Loading image",i,j)
                     # This way of drawing assumes all images have the size of the first image
                     # Crop the image
-                    pc = p.copy(cropRect)
+                    pc = self.currentImages[i,j].copy(cropRect)
 
                     # Draw the image
                     imageItem = QGraphicsPixmapItem(pc)
