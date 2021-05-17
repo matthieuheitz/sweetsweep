@@ -294,6 +294,9 @@ class Ui(QtWidgets.QMainWindow):
         self.draw_graphics()
 
     def filePattern_changed(self):
+        # If pattern hasn't changed, no need to redraw
+        if self.lineEdit_filePattern.text() == self.filePattern:
+            return
         self.filePattern = self.lineEdit_filePattern.text()
         # Redraw
         self.draw_graphics()
