@@ -16,7 +16,6 @@ from PyQt5.QtGui import QPixmap, QPen, QColor, QImage, QPainter, QFont
 
 # TODO
 #  - Add font size factor spinbox
-#  - Bug when changing folders (from local folder to the sftp folder)
 #  - Add automatic file naming when saving
 #  - Add name pattern that support taking last file of the matches
 #  - Find individual folders by combination index
@@ -205,6 +204,8 @@ class Ui(QtWidgets.QMainWindow):
         self.comboBox_yaxis.addItem(self.comboBox_noneChoice)
         self.comboBox_xaxis.blockSignals(False)
         self.comboBox_yaxis.blockSignals(False)
+        self.xaxis = self.comboBox_noneChoice
+        self.yaxis = self.comboBox_noneChoice
         # Redraw
         self.draw_graphics()
 
