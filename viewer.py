@@ -416,7 +416,7 @@ class Ui(QtWidgets.QMainWindow):
             # Find dirs that match all single parameters
             for param, value in self.paramDict.items():
                 if len(value) == 1:
-                    used_dirs = [d for d in used_dirs if param+str(value[0]) in d]
+                    used_dirs = [d for d in used_dirs if re.search(param+str(value[0])+"(_|$)", d)]
             self.currentImagePaths = np.full((nValuesY,nValuesX), "", dtype=object)
             self.currentImages = np.full((nValuesY, nValuesX), None, dtype=object)
             self.matchedPatterns = np.full((nValuesY, nValuesX),"",dtype=object)
@@ -424,8 +424,8 @@ class Ui(QtWidgets.QMainWindow):
                 for j, jval in enumerate(xrange):
                     # Find the correct folder
                     dirs = used_dirs.copy()
-                    if ival is not None: dirs = [d for d in dirs if self.yaxis+str(ival) in d]
-                    if jval is not None: dirs = [d for d in dirs if self.xaxis+str(jval) in d]
+                    if ival is not None: dirs = [d for d in dirs if re.search(self.yaxis+str(ival)+"(_|$)", d)]
+                    if jval is not None: dirs = [d for d in dirs if re.search(self.xaxis+str(jval)+"(_|$)", d)]
                     if len(dirs) == 0: self.print("Error: no folder matches the set of parameters"); continue
                     if len(dirs) > 1: self.print("Error: multiple folders match the set of parameters:", *dirs); continue
                     currentDir = dirs[0]
