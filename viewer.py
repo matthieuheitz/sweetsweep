@@ -192,8 +192,10 @@ class Ui(QtWidgets.QMainWindow):
         # Redraw when window is resized
         self.draw_graphics(reload_images=False)
 
-    def print(self,txt):
-        self.text_log.appendPlainText(txt)
+    def print(self,*txt):
+        # Convert everything into a str and join it to make a single string,
+        # because this method only accepts one string
+        self.text_log.appendPlainText(" ".join([str(t) for t in txt]))
 
     def log_clear(self):
         self.text_log.clear()
@@ -425,7 +427,7 @@ class Ui(QtWidgets.QMainWindow):
                     if ival is not None: dirs = [d for d in dirs if self.yaxis+str(ival) in d]
                     if jval is not None: dirs = [d for d in dirs if self.xaxis+str(jval) in d]
                     if len(dirs) == 0: self.print("Error: no folder matches the set of parameters"); continue
-                    if len(dirs) > 1: self.print("Error: multiple folders match the set of parameters:", dirs); continue
+                    if len(dirs) > 1: self.print("Error: multiple folders match the set of parameters:", *dirs); continue
                     currentDir = dirs[0]
 
                     # Check if file exists
