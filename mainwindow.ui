@@ -385,6 +385,13 @@
         </widget>
        </item>
        <item>
+        <widget class="QProgressBar" name="progressBar">
+         <property name="value">
+          <number>24</number>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QPlainTextEdit" name="text_log"/>
        </item>
        <item>
@@ -408,7 +415,7 @@
      <x>0</x>
      <y>0</y>
      <width>842</width>
-     <height>20</height>
+     <height>17</height>
     </rect>
    </property>
   </widget>

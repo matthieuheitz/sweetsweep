@@ -128,6 +128,7 @@ class Ui(QtWidgets.QMainWindow):
         self.lineEdit_saveFile.setText(self.defaultSaveFileName)
 
         # View
+        self.progressBar.hide()
         self.paramControlWidgetList = []
         self.comboBox_xaxis.addItem(self.comboBox_noneChoice)
         self.comboBox_yaxis.addItem(self.comboBox_noneChoice)
@@ -495,9 +496,16 @@ class Ui(QtWidgets.QMainWindow):
         # labelSpacing = max(imWidth,imHeight)/20
         labelSpacing = fontSize*0.75
 
+        # Show a progress bar
+        show_pbar = nValuesX*nValuesY > 1
+        if show_pbar: self.progressBar.show()
+
         # Draw images and labels
         for i, ival in enumerate(yrange):
             for j, jval in enumerate(xrange):
+
+                # Update progress bar
+                if show_pbar: self.progressBar.setValue(int((i*nValuesX+j)/(nValuesX*nValuesY-1)*100))
 
                 # Compute image position and frame size
                 imagePos = QPointF(j * (imWidth + self.imageSpacing[0]), i * (imHeight + self.imageSpacing[1]))
@@ -559,6 +567,8 @@ class Ui(QtWidgets.QMainWindow):
                 if self.imageFrameLineWidth != 0:
                     self.scene.addRect(frameRect,QPen(QColor(self.imageFrameColor),self.imageFrameLineWidth))
 
+        # Hide the progress bar
+        if show_pbar: self.progressBar.hide()
 
         # Add main title
         # Compute view rectangle
