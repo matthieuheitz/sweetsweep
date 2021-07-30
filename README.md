@@ -61,6 +61,13 @@ parameter values
 - visualize grids of the results with varying parameters in the X and Y axis
 - save those visualizations to file
 
+To run it, make sure you have installed the dependencies above, and simply run
+```bash
+  python3 viewer.py [main_folder]
+```
+You can also provide the main folder as an argument so that you don't have to
+enter it manually in the app.
+
 
 ### Sweep code and example
 
