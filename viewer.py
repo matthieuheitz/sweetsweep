@@ -8,6 +8,7 @@ import numpy as np
 from collections import OrderedDict
 import glob
 import re
+import argparse
 
 from PyQt5 import QtCore, QtWidgets, uic
 from PyQt5.QtCore import Qt, QRect, QRectF, QPoint, QPointF, QSize, QSizeF, QLineF
@@ -180,6 +181,16 @@ class Ui(QtWidgets.QMainWindow):
         # self.graphicsView.setFixedSize(100, 100)  # Changes the size of the widget
         # self.print(str(self.graphicsView.size()))   # Prints the size of the widget, not the scene bounding box coordinates
         # self.print(str(self.graphicsView.viewport().size()))    # Prints the size of the widget, not the scene bounding box coordinates
+
+
+        # Deal with parameters
+        parser = argparse.ArgumentParser(description="SweetSweep: a viewer for parameter sweep results", epilog="")
+        parser.add_argument("sweep_dir", type=str, nargs='?', default="", help="Input directory (optional) where the sweep results are (all experiments directories and the 'sweep.txt' file)")
+        args = parser.parse_args()
+        # If the folder name is provided, put it in the corresponding text box.
+        if args.sweep_dir:
+            self.lineEdit_mainFolder.setText(args.sweep_dir)
+
 
         # DEBUG
         # self.lineEdit_mainFolder.setText("")
