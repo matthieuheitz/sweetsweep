@@ -508,7 +508,7 @@ class Ui(QtWidgets.QMainWindow):
         labelSpacing = fontSize*0.75
 
         # Show a progress bar
-        show_pbar = nValuesX*nValuesY > 1
+        show_pbar = nValuesX*nValuesY > 1 and reload_images
         if show_pbar: self.progressBar.show()
 
         # Draw images and labels
