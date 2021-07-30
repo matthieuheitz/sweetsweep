@@ -1,5 +1,6 @@
 # SweetSweep
-Small application to quickly visualize results from parameter sweeps
+Small application to quickly visualize results from parameter sweeps.
+Also comes with a script that does the sweep and saves the results in a format compatible with the viewer.
 
 ![application screenshot](./screenshots/app.png)
 
