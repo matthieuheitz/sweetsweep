@@ -1,41 +1,55 @@
 # SweetSweep
-Qt application to quickly visualize results from parameter sweeps
+Small application to quickly visualize results from parameter sweeps
 
 ![application screenshot](./screenshots/app.png)
 
-## Quick start
+### Dependencies
+
+For using the viewer, you will need those packages installed:
+```bash
+  pip install numpy PyQt5
+```
+For using the sweep example, you will need those:
+```bash
+  pip install matplotlib
+```
+
+
+### Quick start
 
 You can use this app if the output folders of your parameter sweep are
 named using their respective parameter values, like so:
 ```
 $ ls results/
-results_Example_reprog_sig0.05_ab0.05_multistart100/
-results_Example_reprog_sig0.05_ab0.05_multistart200/
-results_Example_reprog_sig0.05_ab0.1_multistart100/
-results_Example_reprog_sig0.05_ab0.1_multistart200/
-results_Example_reprog_sig0.05_ab0.2_multistart100/
-results_Example_reprog_sig0.05_ab0.2_multistart200/
-results_Example_reprog_sig0.05_ab0.3_multistart100/
-results_Example_reprog_sig0.05_ab0.3_multistart200/
-results_Example_reprog_sig0.1_ab0.05_multistart100/
-results_Example_reprog_sig0.1_ab0.05_multistart200/
-results_Example_reprog_sig0.1_ab0.1_multistart100/
-results_Example_reprog_sig0.1_ab0.1_multistart200/
-results_Example_reprog_sig0.1_ab0.2_multistart100/
-results_Example_reprog_sig0.1_ab0.2_multistart200/
-results_Example_reprog_sig0.1_ab0.3_multistart100/
-results_Example_reprog_sig0.1_ab0.3_multistart200/
+exp_00__alpha5_beta0.1_gammaRed/
+exp_01__alpha5_beta0.1_gammaBlue/
+exp_02__alpha5_beta0.2_gammaRed/
+exp_03__alpha5_beta0.2_gammaBlue/
+exp_04__alpha5_beta0.5_gammaRed/
+exp_05__alpha5_beta0.5_gammaBlue/
+exp_06__alpha10_beta0.1_gammaRed/
+exp_07__alpha10_beta0.1_gammaBlue/
+exp_08__alpha10_beta0.2_gammaRed/
+exp_09__alpha10_beta0.2_gammaBlue/
+exp_10__alpha10_beta0.5_gammaRed/
+exp_11__alpha10_beta0.5_gammaBlue/
+exp_12__alpha15_beta0.1_gammaRed/
+exp_13__alpha15_beta0.1_gammaBlue/
+exp_14__alpha15_beta0.2_gammaRed/
+exp_15__alpha15_beta0.2_gammaBlue/
+exp_16__alpha15_beta0.5_gammaRed/
+exp_17__alpha15_beta0.5_gammaBlue/
 sweep.txt
 ```
 
-You also need to specify a configuration file `sweep.txt` that describes each
-parameter and its values, as a json file:
+You just need to add to your folder a configuration file `sweep.txt`
+that describes each parameter and its values, in a JSON format:
 ```
 $ cat results/sweep.txt
 {
-"sig": [0.05,0.1],
-"ab": [0.05,0.1,0.2,0.3],
-"multistart": [100,200]
+"alpha": [5, 10, 15],
+"beta": [0.1, 0.2, 0.5],
+"gamma": ["Red", "Blue"]
 }
 ```
 Let's say that each directory contains a file `image.png`,
@@ -46,6 +60,18 @@ This app allows you to:
 parameter values
 - visualize grids of the results with varying parameters in the X and Y axis
 - save those visualizations to file
+
+
+### Sweep code and example
+
+There is also a helper function in `sweep.py` that does the parameter sweep for you
+and takes care of creating all the directories with the correct names, so that you
+can directly use the viewer once the sweep is done.
+There is an example on how to use it in `example.py`. To run it, simply do:
+```bash
+  python3 example.py          # Runs the example parameter sweep
+  python3 viewer.py results/  # Launch the viewer to visualize the results
+```
 
 
 ### Config file
@@ -76,8 +102,8 @@ parameter values
   (what `*` replaces) is drawn in the top left corner of each image. This is
   useful if you have an iterative algorithm, and you want to plot the result
   of the last iteration of each folder.
-- The app can access mounted folders, which is great to avoid copying to your
-  computer all result folders from the server on which you ran the sweep.
+- The app can access mounted folders, which is great if you ran the sweep on
+  a server, because you don't to copy all result folders to your computer.
   I only tried on Linux with a folder mounted with `sftp`, in which case the
   URL you need to provide is:
   `/run/user/$uid/gvfs/sftp:host=<host>,user=<user>/path/to/folder`.
