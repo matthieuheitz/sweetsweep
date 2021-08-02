@@ -293,6 +293,9 @@
             </item>
             <item row="0" column="0">
              <widget class="QLabel" name="label_filePattern">
+              <property name="toolTip">
+               <string>When using glob pattern (with '*'), you must also specify an index enclosed in brackets at the end of the pattern, like so: 'image_*.png[-1]' (which asks for the last matching file)</string>
+              </property>
               <property name="text">
                <string>File pattern</string>
               </property>

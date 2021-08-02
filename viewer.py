@@ -446,7 +446,7 @@ class Ui(QtWidgets.QMainWindow):
                     # Check if it's a glob pattern
                     if "*" in self.filePattern:
                         bracketMatch = re.search("\[.*\]", self.filePattern)
-                        if bracketMatch is None:
+                        if bracketMatch is None or bracketMatch.end() != len(self.filePattern):
                             self.print("Error: When using glob pattern (with '*'), you must also specify an index enclosed in "
                                        "brackets at the end of the pattern, like so: 'image_*.png[-1]' (which asks for "
                                        "the last matching file).")
@@ -457,7 +457,7 @@ class Ui(QtWidgets.QMainWindow):
                         except ValueError:
                             self.print("Error: The content of the brackets in the file pattern must be a number.")
                             return
-                        fullPattern = os.path.join(self.mainFolder, currentDir, self.filePattern[:bracketMatch.start()])
+                        fullPattern = os.path.join(self.mainFolder, currentDir, self.filePattern[:bracketMatch.start()] + self.filePattern[bracketMatch.end():])
                         files = sorted(glob.glob(fullPattern))
                         if not (-len(files) <= index < len(files)):
                             continue

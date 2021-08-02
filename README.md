@@ -43,7 +43,7 @@ exp_17__alpha15_beta0.5_gammaBlue/
 sweep.txt
 ```
 
-You just need to add to your folder a configuration file `sweep.txt`
+You just need to add a configuration file `sweep.txt` to your folder,
 that describes each parameter and its values, in a JSON format:
 ```
 $ cat results/sweep.txt
