@@ -510,7 +510,7 @@ class Ui(QtWidgets.QMainWindow):
         # Show a progress bar
         show_pbar = nValuesX*nValuesY > 1 and reload_images
         if show_pbar: self.progressBar.show()
-
+        
         # Draw images and labels
         for i, ival in enumerate(yrange):
             for j, jval in enumerate(xrange):
@@ -521,12 +521,13 @@ class Ui(QtWidgets.QMainWindow):
                 # Compute image position and frame size
                 imagePos = QPointF(j * (imWidth + self.imageSpacing[0]), i * (imHeight + self.imageSpacing[1]))
                 frameRect = QRectF(imagePos,QSizeF(cropRect.size()))
-
+                
                 # Draw existing images
                 if self.currentImagePaths[i,j]:
                     # Load the image
-                    if reload_images:
+                    if reload_images or self.currentImages[i,j] is None:
                         self.currentImages[i,j] = QPixmap(self.currentImagePaths[i,j])
+                        
                         # print("Loading image",i,j)
                     # This way of drawing assumes all images have the size of the first image
                     # Crop the image
