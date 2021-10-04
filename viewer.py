@@ -557,21 +557,23 @@ class Ui(QtWidgets.QMainWindow):
                 if jval is not None and i == 0:
                     textItem = QGraphicsTextItem()
                     textItem.setFont(QFont("Sans Serif",pointSize=fontSize))
-                    textItem.setPlainText(self.xaxis+"="+str(jval))
+                    textItem.setPlainText(self.xaxis+"= "+str(jval))
                     textBR = textItem.sceneBoundingRect()
                     # height/10 is the arbitary spacing that separates labels from images
                     # Subtract textBR.height() on Y so that the bottom of the text is always imHeight/10 from the image
                     textItem.setPos(imagePos + QPointF(imWidth/2 - textBR.width()/2, -labelSpacing - textBR.height()))
+                    textItem.setTextWidth(imWidth)
                     self.scene.addItem(textItem)
 
                 # Draw left labels if Y axis is not None
                 if ival is not None and j == 0:
                     textItem = QGraphicsTextItem()
                     textItem.setFont(QFont("Sans Serif", pointSize=fontSize))
-                    textItem.setPlainText(self.yaxis+"="+str(ival))
+                    textItem.setPlainText(self.yaxis+"= "+str(ival))
                     textItem.setRotation(-90)
                     textBR = textItem.sceneBoundingRect()
                     textItem.setPos(imagePos + QPointF(-labelSpacing - textBR.width(), imHeight/2 + textBR.height()/2))
+                    textItem.setTextWidth(imHeight)
                     self.scene.addItem(textItem)
 
                 # Draw frames
