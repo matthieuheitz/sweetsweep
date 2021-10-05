@@ -19,7 +19,6 @@ from PyQt5.QtGui import QPixmap, QPen, QColor, QImage, QPainter, QFont
 # TODO
 #  - Add font size factor spinbox
 #  - Add automatic file naming when saving
-#  - Find individual folders by combination index
 #  - In grid mode, select a subset of values to plot
 #  - PDF support?
 
@@ -120,6 +119,9 @@ class Ui(QtWidgets.QMainWindow):
         self.comboBox_noneChoice = "--None--"
         self.xaxis = self.comboBox_noneChoice
         self.yaxis = self.comboBox_noneChoice
+        self.resultName = self.comboBox_noneChoice
+        self.resultsCSV = ""
+        self.allResultNames = []
         self.filePattern = ""
         self.currentImages = None
         self.currentImagePaths = None
@@ -133,12 +135,15 @@ class Ui(QtWidgets.QMainWindow):
         self.paramControlWidgetList = []
         self.comboBox_xaxis.addItem(self.comboBox_noneChoice)
         self.comboBox_yaxis.addItem(self.comboBox_noneChoice)
+        self.comboBox_result.addItem(self.comboBox_noneChoice)
         self.imageSpacing = [0,0]   # x and y spacing between images
         self.imageCrop = [0,0,0,0]  # how much to crop images in percentage [left,bottom,right,top]
         self.doubleSpinBox_cropList = [self.doubleSpinBox_cropL,self.doubleSpinBox_cropB,
                                        self.doubleSpinBox_cropR,self.doubleSpinBox_cropT]
         self.imageFrameLineWidth = 0
         self.imageFrameColor = "black"
+        self.resultFontWeight = self.spinBox_resultFontWeight.value()
+        self.resultFontColor = "black"
         self.sceneRect = None
         self.viewRect = None
         self.zoom = 1
@@ -157,11 +162,14 @@ class Ui(QtWidgets.QMainWindow):
         self.pushButton_clearLog.pressed.connect(self.log_clear)
         self.comboBox_xaxis.currentIndexChanged.connect(self.comboBoxAxis_changed)
         self.comboBox_yaxis.currentIndexChanged.connect(self.comboBoxAxis_changed)
+        self.comboBox_result.currentIndexChanged.connect(self.comboBoxResult_changed)
         [w.valueChanged.connect(self.crop_changed) for w in self.doubleSpinBox_cropList]
         self.spinBox_spacingX.valueChanged.connect(self.spacing_changed)
         self.spinBox_spacingY.valueChanged.connect(self.spacing_changed)
         self.spinBox_frameLineWidth.valueChanged.connect(self.frameLineWidth_changed)
         self.lineEdit_frameColor.textChanged.connect(self.frameColor_changed)
+        self.lineEdit_resultFontColor.textChanged.connect(self.resultFontColor_changed)
+        self.spinBox_resultFontWeight.valueChanged.connect(self.resultFontWeight_changed)
         self.pushButton_saveFileBrowse.pressed.connect(self.saveFile_browse)
         self.pushButton_saveFile.pressed.connect(self.saveFile_save)
         self.doubleSpinBox_ImageReduction.valueChanged.connect(self.imageReduction_changed)
@@ -249,6 +257,8 @@ class Ui(QtWidgets.QMainWindow):
         self.paramDict = {}
         self.allParamNames = []
         self.paramControlWidgetList.clear()
+        self.allResultNames = []
+        self.resultArray = None
         # Delete all parameter control widgets
         # https://stackoverflow.com/a/13103617/4195725
         for i in reversed(range(self.gridLayout_paramControl.count())):
@@ -256,14 +266,19 @@ class Ui(QtWidgets.QMainWindow):
         # Reset comboboxes
         self.comboBox_xaxis.blockSignals(True)
         self.comboBox_yaxis.blockSignals(True)
+        self.comboBox_result.blockSignals(True)
         self.comboBox_xaxis.clear()
         self.comboBox_yaxis.clear()
+        self.comboBox_result.clear()
         self.comboBox_xaxis.addItem(self.comboBox_noneChoice)
         self.comboBox_yaxis.addItem(self.comboBox_noneChoice)
+        self.comboBox_result.addItem(self.comboBox_noneChoice)
         self.comboBox_xaxis.blockSignals(False)
         self.comboBox_yaxis.blockSignals(False)
+        self.comboBox_result.blockSignals(False)
         self.xaxis = self.comboBox_noneChoice
         self.yaxis = self.comboBox_noneChoice
+        self.resultName = self.comboBox_noneChoice
         # Redraw
         self.draw_graphics()
 
@@ -284,6 +299,10 @@ class Ui(QtWidgets.QMainWindow):
             self.print("Error: the config file should be a json file")
             self.configFile_invalid()
             return
+
+        # Get list of all parameter names
+        self.allParamNames = [param for param in self.fullParamDict.keys() if not param.startswith("viewer_")]
+
         # Check if there are viewer parameters
         if "viewer_cropLBRT" in self.fullParamDict:
             self.set_cropLBRT(self.fullParamDict["viewer_cropLBRT"])
@@ -294,14 +313,19 @@ class Ui(QtWidgets.QMainWindow):
             del self.fullParamDict["viewer_filePattern"]
             # No need to call self.filePattern_changed because we already set self.filePattern
             # and later call draw_graphics()
+        if "viewer_resultsCSV" in self.fullParamDict:
+            self.resultsCSV = self.fullParamDict["viewer_resultsCSV"]
+            # Read CSV
+            self.resultArray = np.genfromtxt(os.path.join(self.mainFolder, self.resultsCSV), delimiter=',', names=True, dtype=None, encoding=None)
+            self.allResultNames = [name for name in self.resultArray.dtype.names if name not in (self.allParamNames+["exp_id"])]
+            del self.fullParamDict["viewer_resultsCSV"]
 
-        # Get list of all parameter names
-        self.allParamNames = list(self.fullParamDict.keys())
         # Populate the parameter controls
         self.populate_parameterControls()
         # Populate the axis comboboxes
         self.comboBox_xaxis.addItems(self.allParamNames)
         self.comboBox_yaxis.addItems(self.allParamNames)
+        self.comboBox_result.addItems(self.allResultNames)
         # Redraw
         self.draw_graphics()
 
@@ -357,6 +381,15 @@ class Ui(QtWidgets.QMainWindow):
         # Redraw
         self.draw_graphics()
 
+
+    def comboBoxResult_changed(self, index):
+        self.resultName = self.comboBox_result.currentText()
+
+        # Redraw
+        self.draw_graphics(reload_images=False, resetView=False)
+        return
+
+
     def filePattern_changed(self):
         # If pattern hasn't changed, no need to redraw
         if self.lineEdit_filePattern.text() == self.filePattern:
@@ -406,6 +439,14 @@ class Ui(QtWidgets.QMainWindow):
 
     def frameColor_changed(self, text):
         self.imageFrameColor = text
+        self.draw_graphics(reload_images=False, resetView=False)
+
+    def resultFontWeight_changed(self, value):
+        self.resultFontWeight = value
+        self.draw_graphics(reload_images=False, resetView=False)
+
+    def resultFontColor_changed(self, text):
+        self.resultFontColor = text
         self.draw_graphics(reload_images=False, resetView=False)
 
     def draw_graphics(self, reload_images=True, resetView=True):
@@ -507,6 +548,13 @@ class Ui(QtWidgets.QMainWindow):
         # labelSpacing = max(imWidth,imHeight)/20
         labelSpacing = fontSize*0.75
 
+        # If we need to show results
+        if self.resultName != self.comboBox_noneChoice:
+            # Precompute bool array that allows to find results values for a given set of parameters,
+            # but for parameters that are neither in x or y axis.
+            non_axis_params = [name for name in self.allParamNames if name not in [self.xaxis, self.yaxis]]
+            non_axis_bool_array = np.logical_and.reduce([self.resultArray[p] == self.paramDict[p][0] for p in non_axis_params])
+
         # Show a progress bar
         show_pbar = nValuesX*nValuesY > 1 and reload_images
         if show_pbar: self.progressBar.show()
@@ -575,6 +623,29 @@ class Ui(QtWidgets.QMainWindow):
                     textItem.setPos(imagePos + QPointF(-labelSpacing - textBR.width(), imHeight/2 + textBR.height()/2))
                     textItem.setTextWidth(imHeight)
                     self.scene.addItem(textItem)
+
+                # Draw the result if one is selected
+                if self.resultName != self.comboBox_noneChoice:
+                    # Get row corresponding to the current set of parameters in result array
+                    # It's probably faster to get it by exp_id, but this is fast enough for now, and it's more reliable
+                    bool_array = non_axis_bool_array.copy()
+                    if self.xaxis != self.comboBox_noneChoice: bool_array = np.logical_and(bool_array,self.resultArray[self.xaxis] == jval)
+                    if self.yaxis != self.comboBox_noneChoice: bool_array = np.logical_and(bool_array,self.resultArray[self.yaxis] == ival)
+                    if np.count_nonzero(bool_array) != 1:
+                        self.print("Warning: The set of parameters doesn't match a single experiment")
+                    # Get corresponding value in row
+                    result_value_ij = self.resultArray[bool_array][self.resultName][0]
+                    # Print the text
+                    resultTextItem = QGraphicsTextItem()
+                    resultTextItem.setFont(QFont("Sans Serif", pointSize=fontSize, weight=35*(self.resultFontWeight-1)))
+                    resultTextItem.setDefaultTextColor(QColor(self.resultFontColor))
+                    resultTextItem.setPlainText(str(result_value_ij))
+                    resultTextItem.setPos(imagePos)
+                    textBR = resultTextItem.sceneBoundingRect()
+                    resultTextItem.setPos(imagePos + QPointF(imWidth/2 - textBR.width()/2, imHeight/2 - textBR.height()/2))
+                    # resultTextItem.setPos(imagePos + QPointF(imWidth/2, imHeight/2))
+                    # resultTextItem.setTextWidth(imWidth)
+                    self.scene.addItem(resultTextItem)
 
                 # Draw frames
                 if self.imageFrameLineWidth != 0:

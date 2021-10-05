@@ -94,52 +94,21 @@
          <layout class="QVBoxLayout" name="verticalLayout_3">
           <item>
            <layout class="QGridLayout" name="gridLayout_display">
-            <item row="3" column="1">
-             <layout class="QHBoxLayout" name="horizontalLayout_4">
-              <item>
-               <widget class="QSpinBox" name="spinBox_frameLineWidth">
-                <property name="maximum">
-                 <number>10000</number>
-                </property>
-                <property name="singleStep">
-                 <number>2</number>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="label_6">
-                <property name="maximumSize">
-                 <size>
-                  <width>15</width>
-                  <height>16777215</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>px</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <spacer name="horizontalSpacer">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-              <item>
-               <widget class="QLineEdit" name="lineEdit_frameColor">
-                <property name="text">
-                 <string>black</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_filePattern">
+              <property name="minimumSize">
+               <size>
+                <width>70</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="toolTip">
+               <string>When using glob pattern (with '*'), you must also specify an index enclosed in brackets at the end of the pattern, like so: 'image_*.png[-1]' (which asks for the last matching file)</string>
+              </property>
+              <property name="text">
+               <string>File pattern</string>
+              </property>
+             </widget>
             </item>
             <item row="2" column="1">
              <layout class="QHBoxLayout" name="horizontalLayout_3">
@@ -177,20 +146,6 @@
                </widget>
               </item>
              </layout>
-            </item>
-            <item row="3" column="0">
-             <widget class="QLabel" name="label_3">
-              <property name="text">
-               <string>Frame</string>
-              </property>
-             </widget>
-            </item>
-            <item row="4" column="0">
-             <widget class="QLabel" name="label_8">
-              <property name="text">
-               <string>X Axis</string>
-              </property>
-             </widget>
             </item>
             <item row="1" column="1">
              <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -268,6 +223,16 @@
               </property>
              </widget>
             </item>
+            <item row="4" column="0">
+             <widget class="QLabel" name="label_8">
+              <property name="text">
+               <string>X Axis</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="1">
+             <widget class="MyQComboBox" name="comboBox_xaxis"/>
+            </item>
             <item row="1" column="0">
              <widget class="QLabel" name="label">
               <property name="toolTip">
@@ -277,6 +242,72 @@
                <string>Crop (L,B,R,T)</string>
               </property>
              </widget>
+            </item>
+            <item row="5" column="0">
+             <widget class="QLabel" name="label_10">
+              <property name="text">
+               <string>Y Axis</string>
+              </property>
+             </widget>
+            </item>
+            <item row="6" column="1">
+             <layout class="QHBoxLayout" name="horizontalLayout_7"/>
+            </item>
+            <item row="5" column="1">
+             <widget class="MyQComboBox" name="comboBox_yaxis"/>
+            </item>
+            <item row="3" column="1">
+             <layout class="QHBoxLayout" name="horizontalLayout_4">
+              <item>
+               <widget class="QSpinBox" name="spinBox_frameLineWidth">
+                <property name="minimumSize">
+                 <size>
+                  <width>60</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="maximum">
+                 <number>10000</number>
+                </property>
+                <property name="singleStep">
+                 <number>2</number>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_6">
+                <property name="maximumSize">
+                 <size>
+                  <width>15</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>px</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="horizontalSpacer">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="lineEdit_frameColor">
+                <property name="text">
+                 <string>black</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
             </item>
             <item row="0" column="1">
              <widget class="QLineEdit" name="lineEdit_filePattern">
@@ -291,28 +322,105 @@
               </property>
              </widget>
             </item>
+            <item row="3" column="0">
+             <widget class="QLabel" name="label_3">
+              <property name="text">
+               <string>Frame</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="Line" name="line">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <layout class="QGridLayout" name="gridLayout_result">
+            <item row="0" column="1">
+             <widget class="QComboBox" name="comboBox_result"/>
+            </item>
             <item row="0" column="0">
-             <widget class="QLabel" name="label_filePattern">
+             <widget class="QLabel" name="label_11">
+              <property name="minimumSize">
+               <size>
+                <width>70</width>
+                <height>0</height>
+               </size>
+              </property>
               <property name="toolTip">
-               <string>When using glob pattern (with '*'), you must also specify an index enclosed in brackets at the end of the pattern, like so: 'image_*.png[-1]' (which asks for the last matching file)</string>
+               <string>Display results saved in a csv file (its name should be in sweep.txt)</string>
               </property>
               <property name="text">
-               <string>File pattern</string>
+               <string>Result name</string>
               </property>
              </widget>
             </item>
-            <item row="5" column="0">
-             <widget class="QLabel" name="label_10">
+            <item row="1" column="1">
+             <layout class="QHBoxLayout" name="horizontalLayout_8">
+              <item>
+               <widget class="QLabel" name="label_12">
+                <property name="maximumSize">
+                 <size>
+                  <width>25</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="toolTip">
+                 <string>Level of boldness (font weight)</string>
+                </property>
+                <property name="text">
+                 <string>Bold</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QSpinBox" name="spinBox_resultFontWeight">
+                <property name="minimumSize">
+                 <size>
+                  <width>60</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="minimum">
+                 <number>1</number>
+                </property>
+                <property name="maximum">
+                 <number>3</number>
+                </property>
+                <property name="singleStep">
+                 <number>1</number>
+                </property>
+                <property name="value">
+                 <number>2</number>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_14">
+                <property name="text">
+                 <string>Color</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="lineEdit_resultFontColor">
+                <property name="text">
+                 <string>black</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="label_13">
               <property name="text">
-               <string>Y Axis</string>
+               <string>Result font:</string>
               </property>
              </widget>
-            </item>
-            <item row="4" column="1">
-             <widget class="MyQComboBox" name="comboBox_xaxis"/>
-            </item>
-            <item row="5" column="1">
-             <widget class="MyQComboBox" name="comboBox_yaxis"/>
             </item>
            </layout>
           </item>
@@ -418,7 +526,7 @@
      <x>0</x>
      <y>0</y>
      <width>842</width>
-     <height>17</height>
+     <height>19</height>
     </rect>
    </property>
   </widget>

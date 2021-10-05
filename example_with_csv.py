@@ -4,6 +4,7 @@ import os
 import math
 import json
 import matplotlib.pyplot as plt
+import csv
 
 import sweep
 
@@ -16,11 +17,13 @@ param_sweep["beta"] = [0.1, 0.2, 0.5]
 param_sweep["gamma"] = ["Red", "Blue"]
 
 # Main folder for the sweep
-my_sweep_dir = "./my_sweep"
+my_sweep_dir = "./my_sweep_with_csv"
 os.makedirs(my_sweep_dir, exist_ok=True)
 
 # Name of the image to save
 image_filename = "image.png"
+# Name of the csv file to save (one row per experiment)
+csv_filename = "results.csv"
 
 
 # Save the param_sweep file
@@ -28,6 +31,7 @@ params = param_sweep.copy()
 # Add parameters for the viewer if you need (see README.md)
 params["viewer_filePattern"] = image_filename
 # params["viewer_cropLBRT"] = [0, 0, 0, 0]
+params["viewer_resultsCSV"] = csv_filename
 json.dump(params, open(os.path.join(my_sweep_dir, "sweep.txt"), "w"))
 
 
@@ -62,6 +66,13 @@ def my_experiment(exp_id, param_dict, exp_dir):
     plt.savefig(os.path.join(exp_dir, image_filename), bbox_inches="tight")
     plt.close()
 
+    # Return additional results as a dictionary, where keys will be the corresponding columns in the CSV.
+    # Return the results either as their original dtype, or as how you want them to appear in the viewer:
+    # return {"sum_x": sum(x), "mean_x": sum(x)/len(x), "max_x": max(x)}
+    return {"sum_x": "%0.2g"%sum(x),
+            "mean_x": "%0.2g"%(sum(x)/len(x)),
+            "max_x": "%0.2g"%max(x)}
 
-# Run the sweep
-sweep.parameter_sweep(param_sweep, my_experiment, my_sweep_dir)
+
+# Run the sweep, the function creates and fills the CSV for you
+sweep.parameter_sweep(param_sweep, my_experiment, my_sweep_dir, result_csv_filename=csv_filename)
