@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 
 import os
+import time
 import csv
+import pathos.multiprocessing as mp
+from pathos.helpers import mp as pathos_multiprocess
+
 
 
 # This function performs a parameter sweep.
@@ -72,3 +76,92 @@ def parameter_sweep(param_dict, experiment_func, sweep_dir, start_index=0, resul
     # Start experiments
     recursive_call(start_index, current_dict, 0)
 
+
+
+
+
+
+# Same function as above, except that it runs the sweep with a multiprocessing pool of `max_workers` workers.
+# The results are written individually to the CSV file as they are produced, so that it's always readable during the sweep
+def parameter_sweep_parallel(param_dict, experiment_func, sweep_dir, max_workers=4, start_index=0, result_csv_filename=""):
+
+    # Fill the current_dict and count number of experiments
+    current_dict={}
+    num_exp = 1
+    for k in param_dict.keys():
+        current_dict[k] = param_dict[k][0]
+        num_exp *= len(param_dict[k])
+
+    print("\nThere are a total of",num_exp,"experiments.\n")
+
+    # Get list of parameter dictionaries (one for each experiment)
+    def make_paramdict_list(current_dict, param_index):
+        current_key = list(param_dict.keys())[param_index]
+        param_dict_list = []
+        for v in param_dict[current_key]:
+            current_dict[current_key] = v
+            if param_index == len(param_dict.keys())-1:
+                param_dict_list.append(current_dict.copy())
+            else:
+                param_dict_list += make_paramdict_list(current_dict, param_index+1)
+
+        return param_dict_list
+
+    paramdict_list = make_paramdict_list(current_dict, 0)
+
+
+    # Experiment worker
+    def run_experiment(exp_id, current_dict, result_queue):
+        # Create a folder for that experiment
+        exp_dir = os.path.join(sweep_dir, ("exp_%0" + str(len(str(num_exp))) + "d_") % exp_id)
+        for k, v in current_dict.items():
+            exp_dir += "_" + k + str(v)
+        os.makedirs(exp_dir, exist_ok=True)
+
+        # Run the experiment
+        result_dict = experiment_func(exp_id, current_dict, exp_dir)
+
+        # Send to queue to write results
+        if result_csv_filename:
+            if result_dict:
+                result_queue.put((exp_id, result_dict))
+            else:
+                print("WARNING: Can't write results to CSV: received 'None' from experiment_func().")
+
+        return result_dict
+
+    # Result writing listener
+    def write_results_to_csv(result_queue):
+
+        write_header = True
+        # Be careful, i doesn't represent the exp_id, they usually don't terminate in order.
+        # It's just because we know we should receive a total of `num_exp` results.
+        for i in range(num_exp):
+            result = result_queue.get()
+            exp_id, result_dict = result
+
+            # Save additional results by writing them to the CSV
+            with open(os.path.join(sweep_dir, result_csv_filename), mode='a') as csv_file:
+                csv_writer = csv.writer(csv_file)
+                # Only on first call received, write the CSV header
+                if write_header:
+                    csv_writer.writerow(["exp_id"] + list(param_dict.keys()) + list(result_dict.keys()))
+                    write_header = False
+                # Write the result row
+                csv_row = [exp_id] + list(current_dict.values())  # Write exp_id and current param values
+                csv_row += list(result_dict.values())  # Write returned data
+                csv_writer.writerow(csv_row)
+
+    # Must use Manager queue here, or will not work
+    manager = pathos_multiprocess.Manager()
+    queue = manager.Queue()
+
+    # Run experiments
+    t0 = time.time()
+    with mp.Pool(max_workers) as pool:
+        # Put listener to work first
+        watcher = pool.apply_async(write_results_to_csv, (queue,))
+        # Spawn workers
+        pool.starmap(run_experiment, zip(range(start_index,num_exp+start_index), paramdict_list, [queue]*num_exp))
+
+    print("Time taken to run all experiments:",time.time()-t0)
