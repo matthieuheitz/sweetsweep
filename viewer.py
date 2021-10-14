@@ -316,8 +316,14 @@ class Ui(QtWidgets.QMainWindow):
         if "viewer_resultsCSV" in self.fullParamDict:
             self.resultsCSV = self.fullParamDict["viewer_resultsCSV"]
             # Read CSV
-            self.resultArray = np.genfromtxt(os.path.join(self.mainFolder, self.resultsCSV), delimiter=',', names=True, dtype=None, encoding=None)
-            self.allResultNames = [name for name in self.resultArray.dtype.names if name not in (self.allParamNames+["exp_id"])]
+            try:
+                self.resultArray = np.genfromtxt(os.path.join(self.mainFolder, self.resultsCSV), delimiter=',', names=True, dtype=None, encoding=None)
+                self.allResultNames = [name for name in self.resultArray.dtype.names if name not in (self.allParamNames + ["exp_id"])]
+            except Exception as e:
+                self.print("Exception:",e)
+                self.print("Unable to read result file '%s'. The file might be busy."%self.resultsCSV)
+                self.allResultNames = []
+
             del self.fullParamDict["viewer_resultsCSV"]
 
         # Populate the parameter controls
