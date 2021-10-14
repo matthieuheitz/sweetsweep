@@ -637,21 +637,24 @@ class Ui(QtWidgets.QMainWindow):
                     bool_array = non_axis_bool_array.copy()
                     if self.xaxis != self.comboBox_noneChoice: bool_array = np.logical_and(bool_array,self.resultArray[self.xaxis] == jval)
                     if self.yaxis != self.comboBox_noneChoice: bool_array = np.logical_and(bool_array,self.resultArray[self.yaxis] == ival)
-                    if np.count_nonzero(bool_array) != 1:
-                        self.print("Warning: The set of parameters doesn't match a single experiment")
-                    # Get corresponding value in row
-                    result_value_ij = self.resultArray[bool_array][self.resultName][0]
-                    # Print the text
-                    resultTextItem = QGraphicsTextItem()
-                    resultTextItem.setFont(QFont("Sans Serif", pointSize=fontSize, weight=35*(self.resultFontWeight-1)))
-                    resultTextItem.setDefaultTextColor(QColor(self.resultFontColor))
-                    resultTextItem.setPlainText(str(result_value_ij))
-                    resultTextItem.setPos(imagePos)
-                    textBR = resultTextItem.sceneBoundingRect()
-                    resultTextItem.setPos(imagePos + QPointF(imWidth/2 - textBR.width()/2, imHeight/2 - textBR.height()/2))
-                    # resultTextItem.setPos(imagePos + QPointF(imWidth/2, imHeight/2))
-                    # resultTextItem.setTextWidth(imWidth)
-                    self.scene.addItem(resultTextItem)
+
+                    # If np.count_nonzero(bool_array) == 0, the result is not in the csv, so don't display anything
+                    if np.count_nonzero(bool_array) > 1:
+                        self.print("Warning: The set of parameters matches multiple experiments.")
+                    elif np.count_nonzero(bool_array) == 1:
+                        # Get corresponding value in row
+                        result_value_ij = self.resultArray[bool_array][self.resultName][0]
+                        # Print the text
+                        resultTextItem = QGraphicsTextItem()
+                        resultTextItem.setFont(QFont("Sans Serif", pointSize=fontSize, weight=35*(self.resultFontWeight-1)))
+                        resultTextItem.setDefaultTextColor(QColor(self.resultFontColor))
+                        resultTextItem.setPlainText(str(result_value_ij))
+                        resultTextItem.setPos(imagePos)
+                        textBR = resultTextItem.sceneBoundingRect()
+                        resultTextItem.setPos(imagePos + QPointF(imWidth/2 - textBR.width()/2, imHeight/2 - textBR.height()/2))
+                        # resultTextItem.setPos(imagePos + QPointF(imWidth/2, imHeight/2))
+                        # resultTextItem.setTextWidth(imWidth)
+                        self.scene.addItem(resultTextItem)
 
                 # Draw frames
                 if self.imageFrameLineWidth != 0:
