@@ -124,7 +124,7 @@ def parameter_sweep_parallel(param_dict, experiment_func, sweep_dir, max_workers
         # Send to queue to write results
         if result_csv_filename:
             if result_dict:
-                result_queue.put((exp_id, result_dict))
+                result_queue.put((exp_id, current_dict, result_dict))
             else:
                 print("WARNING: Can't write results to CSV: received 'None' from experiment_func().")
 
@@ -137,18 +137,17 @@ def parameter_sweep_parallel(param_dict, experiment_func, sweep_dir, max_workers
         # Be careful, i doesn't represent the exp_id, they usually don't terminate in order.
         # It's just because we know we should receive a total of `num_exp` results.
         for i in range(num_exp):
-            result = result_queue.get()
-            exp_id, result_dict = result
+            exp_id, exp_param_dict, result_dict = result_queue.get()
 
             # Save additional results by writing them to the CSV
             with open(os.path.join(sweep_dir, result_csv_filename), mode='a') as csv_file:
                 csv_writer = csv.writer(csv_file)
                 # Only on first call received, write the CSV header
                 if write_header:
-                    csv_writer.writerow(["exp_id"] + list(param_dict.keys()) + list(result_dict.keys()))
+                    csv_writer.writerow(["exp_id"] + list(exp_param_dict.keys()) + list(result_dict.keys()))
                     write_header = False
                 # Write the result row
-                csv_row = [exp_id] + list(current_dict.values())  # Write exp_id and current param values
+                csv_row = [exp_id] + list(exp_param_dict.values())  # Write exp_id and current param values
                 csv_row += list(result_dict.values())  # Write returned data
                 csv_writer.writerow(csv_row)
 
