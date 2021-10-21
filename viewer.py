@@ -221,7 +221,7 @@ class Ui(QtWidgets.QMainWindow):
         self.text_log.clear()
 
     def mainFolder_browse(self):
-        dir = str(QFileDialog.getExistingDirectory(self, "Select directory"))
+        dir = str(QFileDialog.getExistingDirectory(self, "Select directory", os.path.dirname(self.mainFolder.rstrip("/"))))
         if dir:
             self.mainFolder = dir
         self.lineEdit_mainFolder.setText(self.mainFolder)
@@ -246,7 +246,7 @@ class Ui(QtWidgets.QMainWindow):
 
     def configFile_browse(self):
         # file = str(QFileDialog.getOpenFileUrl(self, "Select file..."))
-        file = QFileDialog.getOpenFileName(self, "Select file...")[0]
+        file = QFileDialog.getOpenFileName(self, "Select file...",self.mainFolder)[0]
         if file:
             self.configFile = file
         self.lineEdit_configFile.setText(self.configFile)
