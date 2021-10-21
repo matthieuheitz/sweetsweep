@@ -317,7 +317,7 @@ class Ui(QtWidgets.QMainWindow):
             self.resultsCSV = self.fullParamDict["viewer_resultsCSV"]
             # Read CSV
             try:
-                self.resultArray = np.genfromtxt(os.path.join(self.mainFolder, self.resultsCSV), delimiter=',', names=True, dtype=None, encoding=None)
+                self.resultArray = np.genfromtxt(os.path.join(os.path.dirname(path), self.resultsCSV), delimiter=',', names=True, dtype=None, encoding=None)
                 self.allResultNames = [name for name in self.resultArray.dtype.names if name not in (self.allParamNames + ["exp_id"])]
             except Exception as e:
                 self.print("Exception:",e)
