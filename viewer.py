@@ -17,6 +17,7 @@ from PyQt5.QtGui import QPixmap, QPen, QColor, QImage, QPainter, QFont
 
 
 # TODO
+#  - Prevent users from loading sweep file (and result file) if mainfolder is not valid (grey/hide widgets out?)
 #  - Add font size factor spinbox
 #  - Add automatic file naming when saving
 #  - In grid mode, select a subset of values to plot
@@ -131,6 +132,7 @@ class Ui(QtWidgets.QMainWindow):
         self.lineEdit_saveFile.setText(self.defaultSaveFileName)
 
         # View
+        self.comboBox_filePattern.hide()
         self.progressBar.hide()
         self.paramControlWidgetList = []
         self.comboBox_xaxis.addItem(self.comboBox_noneChoice)
@@ -157,6 +159,7 @@ class Ui(QtWidgets.QMainWindow):
         self.lineEdit_mainFolder.textChanged.connect(self.mainFolder_changed)
         self.lineEdit_configFile.textChanged.connect(self.configFile_changed)
         self.lineEdit_filePattern.editingFinished.connect(self.filePattern_changed)
+        self.comboBox_filePattern.currentIndexChanged.connect(self.filePattern_changed)
         self.pushButton_mainFolder.pressed.connect(self.mainFolder_browse)
         self.pushButton_configFile.pressed.connect(self.configFile_browse)
         self.pushButton_clearLog.pressed.connect(self.log_clear)
@@ -308,8 +311,16 @@ class Ui(QtWidgets.QMainWindow):
             self.set_cropLBRT(self.fullParamDict["viewer_cropLBRT"])
             del self.fullParamDict["viewer_cropLBRT"]
         if "viewer_filePattern" in self.fullParamDict:
-            self.lineEdit_filePattern.setText(self.fullParamDict["viewer_filePattern"])
-            self.filePattern = self.fullParamDict["viewer_filePattern"]
+            if isinstance(self.fullParamDict["viewer_filePattern"], list):
+                self.lineEdit_filePattern.hide()
+                self.comboBox_filePattern.show()
+                self.comboBox_filePattern.clear()
+                self.comboBox_filePattern.addItems(self.fullParamDict["viewer_filePattern"])
+            else:
+                self.comboBox_filePattern.hide()
+                self.lineEdit_filePattern.show()
+                self.lineEdit_filePattern.setText(self.fullParamDict["viewer_filePattern"])
+                self.filePattern = self.fullParamDict["viewer_filePattern"]
             del self.fullParamDict["viewer_filePattern"]
             # No need to call self.filePattern_changed because we already set self.filePattern
             # and later call draw_graphics()
@@ -396,11 +407,17 @@ class Ui(QtWidgets.QMainWindow):
         return
 
 
-    def filePattern_changed(self):
-        # If pattern hasn't changed, no need to redraw
-        if self.lineEdit_filePattern.text() == self.filePattern:
-            return
-        self.filePattern = self.lineEdit_filePattern.text()
+    def filePattern_changed(self, index=0):
+        if self.comboBox_filePattern.isVisible():
+            # If pattern hasn't changed, no need to redraw
+            if self.comboBox_filePattern.itemText(index) == self.filePattern:
+                return
+            self.filePattern = self.comboBox_filePattern.itemText(index)
+        else:
+            # If pattern hasn't changed, no need to redraw
+            if self.lineEdit_filePattern.text() == self.filePattern:
+                return
+            self.filePattern = self.lineEdit_filePattern.text()
         # Redraw
         self.draw_graphics()
 
