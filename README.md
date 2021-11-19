@@ -93,9 +93,13 @@ There is an example on how to use it in `example.py`. To run it, simply do:
   - `viewer_cropLBRT`: cropping images (LBRT: Left,Bottom,Right,Top).
 
     e.g.: `"viewer_cropLBRT": [35,40,30,15],`
-  - `viewer_filePattern`: text for the file pattern textbox.
+  - `viewer_filePattern`: text for the file pattern textbox. You can also pass
+  a list of filenames or file patterns, and it will create a combo box containing
+  this list so that you can quickly switch between them.
 
     e.g.: `"viewer_filePattern": "image.png",`
+
+    or: `"viewer_filePattern": ["image1.png","image2.png"],`
 
 
 ### Miscellaneous
