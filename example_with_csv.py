@@ -5,6 +5,7 @@ import math
 import json
 import matplotlib.pyplot as plt
 import csv
+import time
 
 import sweep
 
@@ -53,6 +54,8 @@ def my_experiment(exp_id, param_dict, exp_dir):
     # param_dict["beta"]
     # ...
 
+    t0 = time.time()
+
     x = [math.sin(param_dict["beta"]*i-param_dict["alpha"]) for i in range(100)]
 
     # ################
@@ -66,10 +69,13 @@ def my_experiment(exp_id, param_dict, exp_dir):
     plt.savefig(os.path.join(exp_dir, image_filename), bbox_inches="tight")
     plt.close()
 
+    total_time = time.time() - t0
+
     # Return additional results as a dictionary, where keys will be the corresponding columns in the CSV.
     # Return the results either as their original dtype, or as how you want them to appear in the viewer:
     # return {"sum_x": sum(x), "mean_x": sum(x)/len(x), "max_x": max(x)}
-    return {"sum_x": "%0.2g"%sum(x),
+    return {"time": "%0.2g"%total_time,
+            "sum_x": "%0.2g"%sum(x),
             "mean_x": "%0.2g"%(sum(x)/len(x)),
             "max_x": "%0.2g"%max(x)}
 
