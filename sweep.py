@@ -26,6 +26,10 @@ from pathos.helpers import mp as pathos_multiprocess
 #                        so that the file is readable during the sweep.
 def parameter_sweep(param_dict, experiment_func, sweep_dir, start_index=0, result_csv_filename=""):
 
+    if not param_dict:
+        print("The parameter dictionary is empty. Nothing to do.")
+        return
+
     # Fill the current_dict and count number of experiments
     current_dict={}
     num_exp = 1
@@ -84,6 +88,10 @@ def parameter_sweep(param_dict, experiment_func, sweep_dir, start_index=0, resul
 # Same function as above, except that it runs the sweep with a multiprocessing pool of `max_workers` workers.
 # The results are written individually to the CSV file as they are produced, so that it's always readable during the sweep
 def parameter_sweep_parallel(param_dict, experiment_func, sweep_dir, max_workers=4, start_index=0, result_csv_filename=""):
+
+    if not param_dict:
+        print("The parameter dictionary is empty. Nothing to do.")
+        return
 
     # Fill the current_dict and count number of experiments
     current_dict={}
