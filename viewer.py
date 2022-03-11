@@ -4,6 +4,8 @@ import os
 import sys
 import time
 import json
+
+import PyQt5.QtDesigner
 import numpy as np
 from collections import OrderedDict
 import glob
@@ -12,16 +14,17 @@ import argparse
 
 from PyQt5 import QtCore, QtWidgets, uic
 from PyQt5.QtCore import Qt, QRect, QRectF, QPoint, QPointF, QSize, QSizeF, QLineF
-from PyQt5.QtWidgets import QGraphicsView, QLabel, QFileDialog, QComboBox, QGraphicsPixmapItem, QDesktopWidget, QGraphicsTextItem, QGraphicsLineItem
+from PyQt5.QtWidgets import QGraphicsView, QLabel, QFileDialog, QComboBox, QGraphicsPixmapItem, QDesktopWidget, QGraphicsTextItem, QPushButton, QGroupBox, QFrame
 from PyQt5.QtGui import QPixmap, QPen, QColor, QImage, QPainter, QFont
 
 
 # TODO
 #  - Prevent users from loading sweep file (and result file) if mainfolder is not valid (grey/hide widgets out?)
-#  - Add font size factor spinbox
+#  - Add font size factor spinbox for labels
 #  - Add automatic file naming when saving
 #  - In grid mode, select a subset of values to plot
 #  - PDF support?
+#  - Make the Size and Notes group boxes collapsible
 
 
 # Because I use a "trick" to hide items of a QComboBox through its QListView,
@@ -38,6 +41,51 @@ class MyQComboBox(QComboBox):
         # If we got out of the loop and new index is hidden, we are on a hidden boundary item, so don't increment.
         if not lv.isRowHidden(index):
             self.setCurrentIndex(index)
+
+
+# TODO: Either replace a QGroupBox in the UI programatically to this class,
+#  or find a way to add it as a widget in QtDesigner
+# class CollapsibleGroupBox(QFrame):
+class CollapsibleGroupBox(QtWidgets.QWidget, PyQt5.QtDesigner.QDesignerContainerExtension):
+    def __init__(self, parent):
+        super(CollapsibleGroupBox, self).__init__(parent)
+        # Attributes
+        self.collapsed = False
+        self.title = 'CollapsibleGroupBox'
+        layout = QtWidgets.QVBoxLayout()
+        # Widgets
+        self.button = QPushButton()
+        self.button.setFlat(True)
+        self.button.setStyleSheet('text-align: left;')
+        self.setTitle(self.title)
+        self.button.pressed.connect(self.toggle_collapsed)
+        layout.addWidget(self.button)
+
+        self.groupbox = QGroupBox()
+        layout.addWidget(self.groupbox)
+
+        self.setLayout(layout)
+
+    def isContainer(self):
+        return True
+
+    def setTitle(self,title):
+        self.title = title
+        self.setButtonText()
+
+    def setButtonText(self):
+        if self.collapsed:
+            self.button.setText("\u25B8 %s"%self.title)
+        else:
+            self.button.setText("\u25BE %s"%self.title)
+
+    def toggle_collapsed(self):
+        self.collapsed = ~self.collapsed
+        self.setButtonText()
+        if self.collapsed:
+            self.groupbox.hide()
+        else:
+            self.groupbox.show()
 
 
 # Make basic types iterable to print them more easily
@@ -96,7 +144,6 @@ class MyQGraphicsView(QGraphicsView):
             self.m_originY = event.y()
 
 
-
 class Ui(QtWidgets.QMainWindow):
     def __init__(self):
         super(Ui, self).__init__()  # Call the inherited classes __init__ method
@@ -126,6 +173,10 @@ class Ui(QtWidgets.QMainWindow):
         self.filePattern = ""
         self.currentImages = None
         self.currentImagePaths = None
+        self.resultArray = None
+        self.notesFile = ""
+        self.notesFileContent = ""
+        self.notesFileNames = ["notes.md","notes.txt"]
 
         # Output
         self.defaultSaveFileName = "output.png"
@@ -149,11 +200,15 @@ class Ui(QtWidgets.QMainWindow):
         self.sceneRect = None
         self.viewRect = None
         self.zoom = 1
+        self.pushButton_groupbox_save.setStyleSheet('text-align: left;')
 
         self.scene = QtWidgets.QGraphicsScene()
         # self.graphicsView.scale(1,-1) # Flip the y axis, but it also flips images
         self.graphicsView.setScene(self.scene)
         self.show() # Show the GUI
+
+        # Toggle off groupboxes (has to be done after self.show())
+        self.groupbox_save_toggled()
 
         # Connect widgets
         self.lineEdit_mainFolder.textChanged.connect(self.mainFolder_changed)
@@ -176,6 +231,9 @@ class Ui(QtWidgets.QMainWindow):
         self.pushButton_saveFileBrowse.pressed.connect(self.saveFile_browse)
         self.pushButton_saveFile.pressed.connect(self.saveFile_save)
         self.doubleSpinBox_ImageReduction.valueChanged.connect(self.imageReduction_changed)
+        self.plainTextEdit_notes.installEventFilter(self)
+        self.pushButton_groupbox_save.pressed.connect(self.groupbox_save_toggled)
+
 
         # This changes the limit of the current view, ie what we see of the scene through the widget.
         # s = 100
@@ -193,7 +251,6 @@ class Ui(QtWidgets.QMainWindow):
         # self.print(str(self.graphicsView.size()))   # Prints the size of the widget, not the scene bounding box coordinates
         # self.print(str(self.graphicsView.viewport().size()))    # Prints the size of the widget, not the scene bounding box coordinates
 
-
         # Deal with parameters
         parser = argparse.ArgumentParser(description="SweetSweep: a viewer for parameter sweep results", epilog="")
         parser.add_argument("sweep_dir", type=str, nargs='?', default="", help="Input directory (optional) where the sweep results are (all experiments directories and the 'sweep.txt' file)")
@@ -202,15 +259,22 @@ class Ui(QtWidgets.QMainWindow):
         if args.sweep_dir:
             self.lineEdit_mainFolder.setText(args.sweep_dir)
 
-
         # DEBUG
         # self.lineEdit_mainFolder.setText("")
         # time.sleep(0.5)
         # self.lineEdit_filePattern.setText("")
         # self.filePattern_changed()
+        return
 
+    def eventFilter(self, object, event):  # This is an overloaded function
+        # If we focus out of the notes
+        if object == self.plainTextEdit_notes and event.type() == QtCore.QEvent.FocusOut:
+            self.window().save_notes_file()
 
-    def resizeEvent(self, event):   # This is an overloaded function
+        # pass the event on to the parent class
+        return super(Ui, self).eventFilter(object, event)
+
+    def resizeEvent(self, event):  # This is an overloaded function
         QtWidgets.QMainWindow.resizeEvent(self, event)
         # Redraw when window is resized
         self.draw_graphics(reload_images=False)
@@ -247,6 +311,66 @@ class Ui(QtWidgets.QMainWindow):
         # Redraw
         self.draw_graphics()
 
+    def find_notes_file(self):
+        """
+        This function tries to find the notes file.
+        If it does, it will set it in self.notesFile
+        :return: nothing
+        """
+        # First, look in self.notesFile in case a filename was provided in the config file
+        if self.notesFile:
+            if os.path.isfile(self.notesFile):
+                return
+            self.print("Couldn't find the notes file '%s'"%os.path.basename(self.notesFile))
+        # If not, look for pre-defined names.
+        for name in self.notesFileNames:
+            f = os.path.join(self.mainFolder, name)
+            if os.path.isfile(f):
+                self.notesFile = f
+                return
+        # If none are found
+        self.notesFile = ""
+
+    def load_notes_file(self):
+        # Search for the notes file
+        self.find_notes_file()
+        if not self.notesFile:
+            return
+        # If found, load it
+        self.groupBox_notes.setTitle("Notes: %s"%os.path.basename(self.notesFile))
+        with open(self.notesFile, 'r') as f:
+            text = f.read()
+            self.plainTextEdit_notes.blockSignals(True)
+            self.plainTextEdit_notes.setPlainText(text)
+            self.plainTextEdit_notes.blockSignals(False)
+            self.notesFileContent = text
+        return
+
+    def save_notes_file(self):
+        text = self.plainTextEdit_notes.toPlainText()
+        # If there is no notes file, and some text was been written, create a notes file
+        if not self.notesFile and not text:
+            return
+        # If text has changed compared to file content
+        if text != self.notesFileContent:
+            # If no notes file existed, create one.
+            if not self.notesFile:
+                self.notesFile = os.path.join(self.mainFolder,self.notesFileNames[0])
+                self.groupBox_notes.setTitle("Notes: %s"%self.notesFileNames[0])
+            with open(self.notesFile, 'w') as f:
+                f.write(text)
+                self.notesFileContent = text
+        return
+
+    def groupbox_save_toggled(self):
+        if self.groupBox_save.isVisible():
+            self.pushButton_groupbox_save.setText("\u25B8 Save")
+            self.groupBox_save.hide()
+        else:
+            self.pushButton_groupbox_save.setText("\u25BE Save")
+            self.groupBox_save.show()
+        return
+
     def configFile_browse(self):
         # file = str(QFileDialog.getOpenFileUrl(self, "Select file..."))
         file = QFileDialog.getOpenFileName(self, "Select file...",self.mainFolder)[0]
@@ -255,6 +379,7 @@ class Ui(QtWidgets.QMainWindow):
         self.lineEdit_configFile.setText(self.configFile)
 
     def configFile_invalid(self):
+        # Reset data
         self.lineEdit_configFile.setStyleSheet("color: red;")
         self.fullParamDict = {}
         self.paramDict = {}
@@ -262,6 +387,12 @@ class Ui(QtWidgets.QMainWindow):
         self.paramControlWidgetList.clear()
         self.allResultNames = []
         self.resultArray = None
+        self.notesFile = ""
+        self.notesFileContent = ""
+
+        # Reset widgets
+        self.plainTextEdit_notes.clear()
+        self.groupBox_notes.setTitle("Notes")
         # Delete all parameter control widgets
         # https://stackoverflow.com/a/13103617/4195725
         for i in reversed(range(self.gridLayout_paramControl.count())):
@@ -282,6 +413,7 @@ class Ui(QtWidgets.QMainWindow):
         self.xaxis = self.comboBox_noneChoice
         self.yaxis = self.comboBox_noneChoice
         self.resultName = self.comboBox_noneChoice
+
         # Redraw
         self.draw_graphics()
 
@@ -332,10 +464,15 @@ class Ui(QtWidgets.QMainWindow):
                 self.allResultNames = [name for name in self.resultArray.dtype.names if name not in (self.allParamNames + ["exp_id"])]
             except Exception as e:
                 self.print("Exception:",e)
-                self.print("Unable to read result file '%s'. The file might be busy."%self.resultsCSV)
+                self.print("Unable to read result file '%s'."%self.resultsCSV)
                 self.allResultNames = []
-
             del self.fullParamDict["viewer_resultsCSV"]
+        if "viewer_notesFile" in self.fullParamDict:
+            self.notesFile = os.path.join(self.mainFolder,self.fullParamDict["viewer_notesFile"])
+            del self.fullParamDict["viewer_notesFile"]
+
+        # Get the notes file
+        self.load_notes_file()
 
         # Populate the parameter controls
         self.populate_parameterControls()
@@ -398,14 +535,12 @@ class Ui(QtWidgets.QMainWindow):
         # Redraw
         self.draw_graphics()
 
-
     def comboBoxResult_changed(self, index):
         self.resultName = self.comboBox_result.currentText()
 
         # Redraw
         self.draw_graphics(reload_images=False, resetView=False)
         return
-
 
     def filePattern_changed(self, index=0):
         if self.comboBox_filePattern.isVisible():

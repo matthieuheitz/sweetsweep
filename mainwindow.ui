@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>842</width>
-    <height>639</height>
+    <width>970</width>
+    <height>784</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -432,9 +432,31 @@
         </widget>
        </item>
        <item>
-        <widget class="QGroupBox" name="groupBox">
-         <property name="title">
+        <widget class="QPushButton" name="pushButton_groupbox_save">
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>15</height>
+          </size>
+         </property>
+         <property name="text">
           <string>Save</string>
+         </property>
+         <property name="flat">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox_save">
+         <property name="title">
+          <string/>
+         </property>
+         <property name="checkable">
+          <bool>false</bool>
+         </property>
+         <property name="checked">
+          <bool>false</bool>
          </property>
          <layout class="QGridLayout" name="gridLayout_5">
           <item row="2" column="0" colspan="2">
@@ -500,6 +522,18 @@
         </widget>
        </item>
        <item>
+        <widget class="QGroupBox" name="groupBox_notes">
+         <property name="title">
+          <string>Notes</string>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_3">
+          <item row="0" column="0">
+           <widget class="QPlainTextEdit" name="plainTextEdit_notes"/>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
         <widget class="QProgressBar" name="progressBar">
          <property name="value">
           <number>24</number>
@@ -529,7 +563,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>842</width>
+     <width>970</width>
      <height>19</height>
     </rect>
    </property>
