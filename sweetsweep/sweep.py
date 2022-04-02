@@ -21,6 +21,14 @@ import csv
 #                        dictionary, with keys being the column names, and values the value of each result for that
 #                        experiment. The results are written individually to the file as soon as they are obtained,
 #                        so that the file is readable during the sweep.
+# - specific_dict: a dictionary containing the swept parameters that are specific to certain values of other
+#                  swept parameters. This will avoid computing redundant experiments. Example: if your sweep is
+#                  {"alpha":["A","B","C"],"beta":[1,2,3]}, but 'beta' only changes the result of the experiment when
+#                  'alpha'="B", then set specific_dict={"beta":{"alpha":"B"}}. This way, the redundant experiments
+#                  of different values of 'beta' when 'alpha" = "A" or "C" will not be computed.
+# - skip_exps: a dictionary of the sets of experiments to skip. Example: if your sweep is
+#              {"alpha":["A","B","C"],"beta":[1,2,3],"gamma"=[0.5,0.6,0.7]}, and you know that "gamma"=0.7 is good for
+#              "beta"=1 or 2, but isn't relevant for 3, you can skip it by passing skip_exps={gamma":0.7,"beta":3}
 def parameter_sweep(param_dict, experiment_func, sweep_dir, start_index=0, result_csv_filename="", specific_dict=None,
                     skip_exps=None):
 
@@ -184,7 +192,7 @@ def check_exp_redundancy(sweep_dict, specific_dict, current_dict):
             # print("Symlink", k2)
 
     # Find the source folder: the one that has the results we would get if we ran this experiment.
-    # It's the one for which the params in param_change have the first value of their sweeped list.
+    # It's the one for which the params in param_change have the first value of their swept list.
     if param_change:
         src_dict = current_dict.copy()
         for p in param_change:
@@ -206,7 +214,8 @@ def check_skip_exp(current_dict,skip_exps):
 
 
 # Same function as above, except that it runs the sweep with a multiprocessing pool of `max_workers` workers.
-# The results are written individually to the CSV file as they are produced, so that it's always readable during the sweep
+# The results are written individually to the CSV file as they are produced, so that it's always readable
+# during the sweep
 def parameter_sweep_parallel(param_dict, experiment_func, sweep_dir, max_workers=4, start_index=0, result_csv_filename=""):
 
     import pathos.multiprocessing as mp
@@ -239,7 +248,6 @@ def parameter_sweep_parallel(param_dict, experiment_func, sweep_dir, max_workers
         return param_dict_list
 
     paramdict_list = make_paramdict_list(current_dict, 0)
-
 
     # Experiment worker
     def run_experiment(exp_id, current_dict, result_queue):

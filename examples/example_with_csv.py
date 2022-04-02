@@ -36,16 +36,16 @@ json.dump(params, open(os.path.join(my_sweep_dir, "sweep.txt"), "w"))
 
 # Create the function for the experiment.
 # The sweep.parameter_sweep() will call it with the following arguments:
-# - exp_id: the experiment index (int)
-# - param_dict: a dictionary with a single value for each parameter
+# - exp_id: the experiment index (integer)
+# - param_dict: a dictionary containing the parameters of the current experiment
 # - exp_dir: the experiment directory, where you can save your output
 def my_experiment(exp_id, param_dict, exp_dir):
 
     print("Experiment #%d:"%exp_id, param_dict)
 
-    # #######################
+    # #########################
     # Run your experiment here
-    #
+    # #########################
 
     # Access the parameters with:
     # param_dict["alpha"]
@@ -58,7 +58,7 @@ def my_experiment(exp_id, param_dict, exp_dir):
 
     # ################
     # Save the output
-    #
+    # ################
 
     # Save the image you want to see in the viewer using `image_filename`
     # For example:
