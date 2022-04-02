@@ -5,7 +5,7 @@ import os
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-import sweep
+import sweetsweep
 import json
 
 matplotlib.use("Agg")
@@ -59,5 +59,5 @@ def test(exp_id, exp_param_dict, exp_dir):
     # print("Experiment #%d:"%exp_id, exp_param_dict)
 
 
-sweep.parameter_sweep(param_sweep, test, my_sweep_dir, start_index=0, result_csv_filename="results.csv",
+sweetsweep.parameter_sweep(param_sweep, test, my_sweep_dir, start_index=0, result_csv_filename="results.csv",
                       specific_dict=specific_dict, skip_exps=skip_exps)

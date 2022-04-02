@@ -4,11 +4,9 @@ import os
 import math
 import json
 import matplotlib.pyplot as plt
-import csv
 import time
 
-import sweep
-
+import sweetsweep
 
 # Create the dictionary of values to sweep for each parameter
 # For example:

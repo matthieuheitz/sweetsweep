@@ -5,8 +5,7 @@ import math
 import json
 import matplotlib.pyplot as plt
 
-import sweep
-
+import sweetsweep
 
 # Create the dictionary of values to sweep for each parameter
 # For example:
@@ -64,4 +63,4 @@ def my_experiment(exp_id, param_dict, exp_dir):
 
 
 # Run the sweep
-sweep.parameter_sweep(param_sweep, my_experiment, my_sweep_dir)
+sweetsweep.parameter_sweep(param_sweep, my_experiment, my_sweep_dir)

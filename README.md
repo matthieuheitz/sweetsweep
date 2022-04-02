@@ -62,12 +62,15 @@ parameter values
 - visualize grids of the results with varying parameters in the X and Y axis
 - save those visualizations to file
 
-To run it, make sure you have installed the dependencies above, and simply run
+To run it, make sure you have installed the dependencies above, and simply run:
 ```bash
-  python3 viewer.py [main_folder]
+  python3 sweetsweep/viewer.py
 ```
-You can also provide the main folder as an argument so that you don't have to
+The results folder can be passed as an argument so that you don't have to
 enter it manually in the app.
+```bash
+  python3 sweetsweep/viewer.py <results>
+```
 
 
 ### Sweep code and example
@@ -77,8 +80,8 @@ and takes care of creating all the directories with the correct names, so that y
 can directly use the viewer once the sweep is done.
 There is an example on how to use it in `example.py`. To run it, simply do:
 ```bash
-  python3 example.py          # Runs the example parameter sweep
-  python3 viewer.py results/  # Launch the viewer to visualize the results
+  python3 examples/example.py          # Runs the example parameter sweep
+  python3 sweetsweep/viewer.py results/  # Launch the viewer to visualize the results
 ```
 
 
@@ -98,7 +101,6 @@ There is an example on how to use it in `example.py`. To run it, simply do:
   this list so that you can quickly switch between them.
 
     e.g.: `"viewer_filePattern": "image.png",`
-
     or: `"viewer_filePattern": ["image1.png","image2.png"],`
 
 
