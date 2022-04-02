@@ -3,9 +3,6 @@
 import os
 import time
 import csv
-import pathos.multiprocessing as mp
-from pathos.helpers import mp as pathos_multiprocess
-
 
 
 # This function performs a parameter sweep.
@@ -24,20 +21,28 @@ from pathos.helpers import mp as pathos_multiprocess
 #                        dictionary, with keys being the column names, and values the value of each result for that
 #                        experiment. The results are written individually to the file as soon as they are obtained,
 #                        so that the file is readable during the sweep.
-def parameter_sweep(param_dict, experiment_func, sweep_dir, start_index=0, result_csv_filename=""):
+def parameter_sweep(param_dict, experiment_func, sweep_dir, start_index=0, result_csv_filename="", specific_dict=None,
+                    skip_exps=None):
 
     if not param_dict:
         print("The parameter dictionary is empty. Nothing to do.")
         return
 
+    # Set some variables
+    csv_path = os.path.join(sweep_dir, result_csv_filename)
+    result_list = {}
+
     # Fill the current_dict and count number of experiments
-    current_dict={}
+    current_dict = {}
     num_exp = 1
     for k in param_dict.keys():
         current_dict[k] = param_dict[k][0]
         num_exp *= len(param_dict[k])
 
-    print("\nThere are a total of",num_exp,"experiments.\n")
+    print("\nThere are",num_exp,"experiments in total.\n")
+    # if specific_dict:
+    #     num_unique_exp = get_num_unique_exp(param_dict,specific_dict)
+    #     print("There are %d unique experiments and %d redundant ones"%(num_unique_exp,num_exp-num_unique_exp))
 
     def recursive_call(exp_id, current_dict, param_index):
         current_key = list(param_dict.keys())[param_index]
@@ -46,28 +51,53 @@ def parameter_sweep(param_dict, experiment_func, sweep_dir, start_index=0, resul
             if param_index != len(param_dict.keys())-1:
                 exp_id = recursive_call(exp_id, current_dict, param_index+1)
             else:
-                # Create a folder for that experiment
-                exp_dir = os.path.join(sweep_dir, ("exp_%0"+str(len(str(num_exp)))+"d_")%exp_id)
-                for k, v in current_dict.items():
-                    exp_dir += "_" + k + str(v)
-                os.makedirs(exp_dir, exist_ok=True)
+                # print("\nExperiment #%d:" % exp_id, current_dict)
 
-                # Run the experiment
-                result_dict = experiment_func(exp_id, current_dict, exp_dir)
+                # Check if need to skip this experiment
+                if skip_exps and check_skip_exp(current_dict,skip_exps):
+                    # print("Skipping")
+                    exp_id = exp_id + 1
+                    continue
 
+                # Get folder name for that experiment
+                exp_dir = os.path.join(sweep_dir, build_dir_name(num_exp, exp_id, current_dict))
+
+                # Check whether this experiment is redundant
+                src_exp_id, src_exp_dict = check_exp_redundancy(param_dict, specific_dict, current_dict)
+
+                # If it's redundant, make a symlink to the source experiment directory
+                if src_exp_id != -1:
+                    # Get the src dir name
+                    src_exp_id += start_index   # Apply the index offset
+                    src_exp_dir = build_dir_name(num_exp, src_exp_id, src_exp_dict)
+                    # Make the symlink
+                    os.symlink(src_exp_dir, exp_dir, target_is_directory=True)
+                    # Get results from src experiment
+                    result_dict = result_list[src_exp_id]
+
+                # Otherwise, run the experiment
+                else:
+                    # Make the directory
+                    os.makedirs(exp_dir, exist_ok=True)
+                    # Run the experiment
+                    result_dict = experiment_func(exp_id, current_dict, exp_dir)
+                    # Store the result
+                    result_list[exp_id] = result_dict
+
+                # Add results to the CSV file
                 if result_csv_filename:
                     if result_dict:
                         # On first experiment, write the CSV header
                         if exp_id == start_index:
                             # Create the csv file, write the header.
-                            with open(os.path.join(sweep_dir, result_csv_filename), mode='w') as csv_file:
+                            with open(csv_path, mode='w') as csv_file:
                                 csv_writer = csv.writer(csv_file)
-                                csv_writer.writerow(["exp_id"] + list(param_dict.keys()) + list(result_dict.keys()))
+                                csv_writer.writerow(["exp_id","src_exp_id"] + list(param_dict.keys()) + list(result_dict.keys()))
 
                         # Save additional results by writing them to the CSV
-                        with open(os.path.join(sweep_dir, result_csv_filename), mode='a') as csv_file:
+                        with open(csv_path, mode='a') as csv_file:
                             csv_writer = csv.writer(csv_file)
-                            csv_row = [exp_id] + list(current_dict.values())    # Write exp_id and current param values
+                            csv_row = [exp_id, src_exp_id] + list(current_dict.values())    # Write exp_id and current param values
                             csv_row += list(result_dict.values())   # Write returned data
                             csv_writer.writerow(csv_row)
                     else:
@@ -81,13 +111,106 @@ def parameter_sweep(param_dict, experiment_func, sweep_dir, start_index=0, resul
     recursive_call(start_index, current_dict, 0)
 
 
+def get_num_exp(sweep_dict):
+    num_exp = 1
+    for k in sweep_dict.keys():
+        num_exp *= len(sweep_dict[k])
+    return num_exp
 
 
+# def get_num_unique_exp(sweep_dict,specific_dict):
+#
+#     for param,value_list in sweep_dict.items():
+#         if param in specific_dict:
+#
+#         else:
+#             total *= len(value_list)
+#
+#     return 0
+
+
+def build_dir_name(n_exp, exp_id, current_dict):
+    exp_dir = ("exp_%0" + str(len(str(n_exp))) + "d_") % exp_id
+    for k, v in current_dict.items():
+        exp_dir += "_" + k + str(v)
+    return exp_dir
+
+
+def get_exp_id(sweep_dict, current_dict):
+    if sweep_dict.keys() != current_dict.keys():
+        print("ERROR: Dictionaries don't have the same keys. Aborting.")
+        exit(-1)
+    # Go through the dict in reverse to get number of leaves of the sub-tree
+    dict_items = list(current_dict.items())
+    dict_items.reverse()
+    cum_prod = 1    # Number of leaves in the subtree
+    index = 0
+    for k,v in dict_items:
+        v_index = sweep_dict[k].index(v)
+        index += v_index*cum_prod
+        cum_prod *= len(sweep_dict[k])
+    return index
+
+
+# Check whether an experiment is redundant or not, based on a specificity dictionary
+# If it is, it returns the id and param dictionary of the experiment to copy from
+def check_exp_redundancy(sweep_dict, specific_dict, current_dict):
+
+    if not specific_dict:
+        return -1, {}
+
+    # Get the list of parameters to change (to the first value of their list) to find the src experiment
+    param_change = []
+    for k2, v2 in specific_dict.items():
+        if not k2 in sweep_dict:
+            print("ERROR: parameter '%s' is not in sweep_dict." % k2)
+            exit(-1)
+        # If the current exp doesn't match the condition, compute only for the first value of the
+        # parameter (could be any of them), and for the others, make symbolic links.
+        match_condition = True
+        for k3, v3 in v2.items():
+            if not k3 in sweep_dict:
+                print("ERROR: parameter '%s' is not in sweep_dict."%k3)
+                exit(-1)
+            if not set(v3).issubset(sweep_dict[k3]):
+                print("ERROR: some values for '%s' in specific_dict are not in sweep_dict:"%k3)
+                print("sweep_dict:", sweep_dict)
+                print("specific_dict['%s']:"%k3, v3)
+                exit(-1)
+            match_condition &= (current_dict[k3] in v3)
+            # if current_dict[k3] in v3: print("match condition", k3, "in", v3)
+        if current_dict[k2] != sweep_dict[k2][0] and not match_condition:
+            param_change.append(k2)
+            # print("Symlink", k2)
+
+    # Find the source folder: the one that has the results we would get if we ran this experiment.
+    # It's the one for which the params in param_change have the first value of their sweeped list.
+    if param_change:
+        src_dict = current_dict.copy()
+        for p in param_change:
+            src_dict[p] = sweep_dict[p][0]
+        src_exp_id = get_exp_id(sweep_dict, src_dict)
+        # print("-> symlink to exp #%d"%src_exp_id,":",src_dict)
+        return src_exp_id, src_dict
+    else:
+        return -1, {}
+
+
+def check_skip_exp(current_dict,skip_exps):
+
+    for condition in skip_exps:
+        for k,v in condition.items():
+            if current_dict[k] not in v:
+                return False
+    return True
 
 
 # Same function as above, except that it runs the sweep with a multiprocessing pool of `max_workers` workers.
 # The results are written individually to the CSV file as they are produced, so that it's always readable during the sweep
 def parameter_sweep_parallel(param_dict, experiment_func, sweep_dir, max_workers=4, start_index=0, result_csv_filename=""):
+
+    import pathos.multiprocessing as mp
+    from pathos.helpers import mp as pathos_multiprocess
 
     if not param_dict:
         print("The parameter dictionary is empty. Nothing to do.")
@@ -100,7 +223,7 @@ def parameter_sweep_parallel(param_dict, experiment_func, sweep_dir, max_workers
         current_dict[k] = param_dict[k][0]
         num_exp *= len(param_dict[k])
 
-    print("\nThere are a total of",num_exp,"experiments.\n")
+    print("\nThere are ",num_exp,"experiments in total.\n")
 
     # Get list of parameter dictionaries (one for each experiment)
     def make_paramdict_list(current_dict, param_index):
