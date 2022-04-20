@@ -348,8 +348,7 @@ class Ui(QtWidgets.QMainWindow):
 
     def save_notes_file(self):
         text = self.plainTextEdit_notes.toPlainText()
-        # If there is no notes file, and some text was been written, create a notes file
-        if not self.notesFile and not text:
+        if not self.notesFile and not text or not self.mainFolder:
             return
         # If text has changed compared to file content
         if text != self.notesFileContent:
