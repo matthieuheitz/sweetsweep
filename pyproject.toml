@@ -10,7 +10,7 @@ build-backend = "setuptools.build_meta"
 name = "sweetsweep"
 authors = [{name = "Matthieu Heitz", email = "heitz.matthieu@gmail.com"}]
 description = "SweetSweep: Run parameter sweeps and visualize results effortlessly"
-urls = {"Source code" = "https://github.com/matthieuheitz/parameter-sweep-viewer"}
+urls = {"Source code" = "https://github.com/matthieuheitz/sweet-sweep"}
 readme = "README.md"
 dynamic = ["version"]
 #dynamic = ["version", "readme"]
