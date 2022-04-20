@@ -1,22 +1,65 @@
 # SweetSweep
-Small application to quickly visualize results from parameter sweeps.
-Also comes with a script that does the sweep and saves the results in a format compatible with the viewer.
+A sweet app to quickly visualize results from parameter sweeps.
+Also comes with functions to run the sweeps and avoid the boilerplate code that comes with them.
 
 ![application screenshot](./screenshots/app.png)
 
-### Dependencies
+### Installation
 
-For using the viewer, you will need those packages installed:
+From [PyPI](https://pypi.org/project/sweetsweep/):
 ```bash
-  pip install numpy PyQt5
-```
-For using the sweep example, you will need those:
-```bash
-  pip install matplotlib
+pip install sweetsweep
 ```
 
+### Overview
 
-### Quick start
+This app provides two things:
+- functions to run parameter sweeps
+- a viewer app to explore the results of the sweep
+
+Note that you can use the viewer for sweep results that have not been generated
+by the functions of this package. The results just need to be in a particular (easy) format.
+More details below.
+
+### Run parameter sweeps
+
+This package has a function that does the parameter sweep for you and takes care of creating all the
+directories with the correct names, so that you can directly use the viewer once the sweep is done.
+It's as simple as this:
+```python
+import sweetsweep
+
+# 'param_sweep' is a dictionary of parameter values to sweep over
+# 'my_experiment' is the function doing one experiment
+# 'my_sweep_dir' is the folder in which to save the results of the sweep
+sweetsweep.parameter_sweep(param_sweep, my_experiment, my_sweep_dir)
+```
+You can also run the sweep in parallel using `sweetsweep.parameter_sweep_parallel()`
+
+Take a look at the examples on how to use this function in `examples`. To try one out, simply do:
+```bash
+  python3 examples/example.py      # Runs the example parameter sweep
+  python -m sweetsweep results/    # Launch the viewer to visualize the results
+```
+
+### Viewer
+
+This app allows you to:
+- quickly visualize image results (e.g. plots, graphs, etc), and easily switch between
+combinations of parameter values
+- visualize grids of the results with varying parameters in the X and Y axis
+- overlay scalar results on the grid of image results (e.g. running time)
+- save those visualizations to file
+- take notes on your results and have them saved automatically
+
+To run it, simply do:
+```bash
+  python -m sweetsweep [results_dir]
+```
+You can specify the results directory to avoid entering it manually in the app.
+
+
+### Format of the results folder
 
 You can use this app if the output folders of your parameter sweep are
 named using their respective parameter values, like so:
@@ -56,34 +99,6 @@ $ cat results/sweep.txt
 Let's say that each directory contains a file `image.png`,
 and you want to compare the results in this file depending on the parameters.
 
-This app allows you to:
-- quickly visualize individual files, and easily switch between
-parameter values
-- visualize grids of the results with varying parameters in the X and Y axis
-- save those visualizations to file
-
-To run it, make sure you have installed the dependencies above, and simply run:
-```bash
-  python3 sweetsweep/viewer.py
-```
-The results folder can be passed as an argument so that you don't have to
-enter it manually in the app.
-```bash
-  python3 sweetsweep/viewer.py <results>
-```
-
-
-### Sweep code and example
-
-There is also a helper function in `sweep.py` that does the parameter sweep for you
-and takes care of creating all the directories with the correct names, so that you
-can directly use the viewer once the sweep is done.
-There is an example on how to use it in `example.py`. To run it, simply do:
-```bash
-  python3 examples/example.py          # Runs the example parameter sweep
-  python3 sweetsweep/viewer.py results/  # Launch the viewer to visualize the results
-```
-
 
 ### Config file
 
@@ -103,11 +118,25 @@ There is an example on how to use it in `example.py`. To run it, simply do:
     e.g.: `"viewer_filePattern": "image.png",`
     or: `"viewer_filePattern": ["image1.png","image2.png"],`
 
+### Distant access
+
+The app can access mounted folders, which is great if you ran the sweep on
+a server, because you don't to copy all result folders to your computer.
+
+  - **Linux**: I only tried on Ubuntu with a folder mounted with SFTP, in which case the
+  URL you need to provide is:
+  `/run/user/$uid/gvfs/sftp:host=<host>,user=<user>/path/to/folder`.
+  Replace `<host>` by the host name, `<user>` by your username, `$uid` by
+  your user id, which you can get by running `id -u` (it is `1000` if you are the
+  only user on your system), and `path/to/folder` by the path to the remote folder.
+  - **Mac**: https://sftptogo.com/blog/how-to-mount-sftp-as-a-drive-on-mac/
+  - **Windows**: https://sftptogo.com/blog/how-to-map-sftp-as-a-windows-10-drive/
 
 ### Miscellaneous
 
 - You can zoom in the view with the mouse wheel, and move around with
   `Left-click + drag.`
+
 - The file pattern supports glob patterns (using the `*` wildcard), along with
   an index selector: `image_*.png[<idx>]`. You can replace `<idx>` with a number
   that selects which match to plot. Negative indices count from the end, so
@@ -116,11 +145,3 @@ There is an example on how to use it in `example.py`. To run it, simply do:
   (what `*` replaces) is drawn in the top left corner of each image. This is
   useful if you have an iterative algorithm, and you want to plot the result
   of the last iteration of each folder.
-- The app can access mounted folders, which is great if you ran the sweep on
-  a server, because you don't to copy all result folders to your computer.
-  I only tried on Linux with a folder mounted with `sftp`, in which case the
-  URL you need to provide is:
-  `/run/user/$uid/gvfs/sftp:host=<host>,user=<user>/path/to/folder`.
-  Replace `<host>` by the host name, `<user>` by your username, `$uid` by
-  your user id, which you can get by running `id -u` (it is `1000` if you are the
-  only user on your system), and `path/to/folder` by the path to the remote folder.

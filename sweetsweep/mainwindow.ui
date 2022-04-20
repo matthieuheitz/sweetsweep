@@ -574,12 +574,12 @@
   <customwidget>
    <class>MyQGraphicsView</class>
    <extends>QGraphicsView</extends>
-   <header>viewer.h</header>
+   <header location="global">sweetsweep.viewer.h</header>
   </customwidget>
   <customwidget>
    <class>MyQComboBox</class>
    <extends>QComboBox</extends>
-   <header>viewer.h</header>
+   <header location="global">sweetsweep.viewer.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

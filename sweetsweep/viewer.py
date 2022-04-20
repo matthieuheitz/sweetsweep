@@ -147,7 +147,7 @@ class MyQGraphicsView(QGraphicsView):
 class Ui(QtWidgets.QMainWindow):
     def __init__(self):
         super(Ui, self).__init__()  # Call the inherited classes __init__ method
-        uic.loadUi('mainwindow.ui', self)   # Load the .ui file
+        uic.loadUi(os.path.join(os.path.dirname(__file__),'mainwindow.ui'), self)   # Load the .ui file
 
         # Place window in the center of the screen, and make it a bit smaller
         screenRect = QDesktopWidget().availableGeometry()
@@ -878,9 +878,12 @@ class Ui(QtWidgets.QMainWindow):
         return
 
 
-if __name__ == '__main__':
-
+def start_viewer():
     app = QtWidgets.QApplication(sys.argv) # Create an instance of QtWidgets.QApplication
     window = Ui() # Create an instance of our class
     app.exec_() # Start the application
 
+
+if __name__ == '__main__':
+
+    start_viewer()
