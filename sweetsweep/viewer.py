@@ -478,7 +478,7 @@ class Ui(QtWidgets.QMainWindow):
         # Populate the axis comboboxes
         self.comboBox_xaxis.addItems(self.allParamNames)
         self.comboBox_yaxis.addItems(self.allParamNames)
-        self.comboBox_result.addItems(self.allResultNames)
+        self.comboBox_result.addItems(["exp_id",] + self.allResultNames)
         # Redraw
         self.draw_graphics()
 
