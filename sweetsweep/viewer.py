@@ -298,13 +298,19 @@ class Ui(QtWidgets.QMainWindow):
         if not os.path.isdir(path):
             self.lineEdit_mainFolder.setStyleSheet("color: red;")
             self.mainFolder = ""
+            self.configFile_invalid()
             self.draw_graphics()
             return
         self.lineEdit_mainFolder.setStyleSheet("color: black;")
         self.mainFolder = path
         # Check if there is a config file
         if os.path.isfile(os.path.join(self.mainFolder,self.defaultConfigFile)):
-            self.lineEdit_configFile.setText(os.path.join(self.mainFolder,self.defaultConfigFile))
+            if os.path.join(self.mainFolder,self.defaultConfigFile) == self.lineEdit_configFile.text():
+                # If the config file is the same as previously, setText() won't fire the changed() signal,
+                # which won't call this function, so we call it manually.
+                self.configFile_changed(self.lineEdit_configFile.text())
+            else:
+                self.lineEdit_configFile.setText(os.path.join(self.mainFolder, self.defaultConfigFile))
         else:
             self.print("No config file 'sweep.txt' found in %s. Please provide it manually."%self.mainFolder)
             return
@@ -400,15 +406,19 @@ class Ui(QtWidgets.QMainWindow):
         self.comboBox_xaxis.blockSignals(True)
         self.comboBox_yaxis.blockSignals(True)
         self.comboBox_result.blockSignals(True)
+        self.comboBox_filePattern.blockSignals(True)
         self.comboBox_xaxis.clear()
         self.comboBox_yaxis.clear()
         self.comboBox_result.clear()
+        self.comboBox_filePattern.clear()
         self.comboBox_xaxis.addItem(self.comboBox_noneChoice)
         self.comboBox_yaxis.addItem(self.comboBox_noneChoice)
         self.comboBox_result.addItem(self.comboBox_noneChoice)
+        self.comboBox_filePattern.addItem(self.comboBox_noneChoice)
         self.comboBox_xaxis.blockSignals(False)
         self.comboBox_yaxis.blockSignals(False)
         self.comboBox_result.blockSignals(False)
+        self.comboBox_filePattern.blockSignals(False)
         self.xaxis = self.comboBox_noneChoice
         self.yaxis = self.comboBox_noneChoice
         self.resultName = self.comboBox_noneChoice
