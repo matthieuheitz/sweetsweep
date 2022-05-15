@@ -116,7 +116,9 @@ def parameter_sweep(param_dict, experiment_func, sweep_dir, start_index=0, resul
         return exp_id
 
     # Start experiments
+    t0 = time.time()
     recursive_call(start_index, current_dict, 0)
+    print("Total time of all experiments:",time.time()-t0)
 
 
 def get_num_exp(sweep_dict):
@@ -302,4 +304,4 @@ def parameter_sweep_parallel(param_dict, experiment_func, sweep_dir, max_workers
         # Spawn workers
         pool.starmap(run_experiment, zip(range(start_index,num_exp+start_index), paramdict_list, [queue]*num_exp))
 
-    print("Time taken to run all experiments:",time.time()-t0)
+    print("Total time of all experiments:",time.time()-t0)
