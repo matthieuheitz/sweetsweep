@@ -20,11 +20,11 @@ from PyQt5.QtGui import QPixmap, QPen, QColor, QImage, QPainter, QFont
 
 # TODO
 #  - Prevent users from loading sweep file (and result file) if mainfolder is not valid (grey/hide widgets out?)
-#  - Add font size factor spinbox for labels
 #  - Add automatic file naming when saving
 #  - In grid mode, select a subset of values to plot
 #  - PDF support?
 #  - Make the Size and Notes group boxes collapsible
+#  - Add a mode to plot scalar results with up to varying parameters (using matplotlib)
 
 
 # Because I use a "trick" to hide items of a QComboBox through its QListView,
@@ -195,8 +195,11 @@ class Ui(QtWidgets.QMainWindow):
                                        self.doubleSpinBox_cropR,self.doubleSpinBox_cropT]
         self.imageFrameLineWidth = 0
         self.imageFrameColor = "black"
+        self.labelRelSize = 0
         self.resultFontWeight = self.spinBox_resultFontWeight.value()
         self.resultFontColor = "black"
+        self.resultFontRelSize = 0
+        self.resultFontBackground = False
         self.sceneRect = None
         self.viewRect = None
         self.zoom = 1
@@ -226,8 +229,11 @@ class Ui(QtWidgets.QMainWindow):
         self.spinBox_spacingY.valueChanged.connect(self.spacing_changed)
         self.spinBox_frameLineWidth.valueChanged.connect(self.frameLineWidth_changed)
         self.lineEdit_frameColor.textChanged.connect(self.frameColor_changed)
+        self.spinBox_labelRelSize.valueChanged.connect(self.labelRelSize_changed)
         self.lineEdit_resultFontColor.textChanged.connect(self.resultFontColor_changed)
         self.spinBox_resultFontWeight.valueChanged.connect(self.resultFontWeight_changed)
+        self.checkBox_resultBackground.stateChanged.connect(self.resultFontBackground_changed)
+        self.spinBox_resultFontRelSize.valueChanged.connect(self.resultFontRelSize_changed)
         self.pushButton_saveFileBrowse.pressed.connect(self.saveFile_browse)
         self.pushButton_saveFile.pressed.connect(self.saveFile_save)
         self.doubleSpinBox_ImageReduction.valueChanged.connect(self.imageReduction_changed)
@@ -608,12 +614,24 @@ class Ui(QtWidgets.QMainWindow):
         self.imageFrameColor = text
         self.draw_graphics(reload_images=False, resetView=False)
 
+    def labelRelSize_changed(self, value):
+        self.labelRelSize = value
+        self.draw_graphics(reload_images=False, resetView=False)
+
     def resultFontWeight_changed(self, value):
         self.resultFontWeight = value
         self.draw_graphics(reload_images=False, resetView=False)
 
     def resultFontColor_changed(self, text):
         self.resultFontColor = text
+        self.draw_graphics(reload_images=False, resetView=False)
+
+    def resultFontBackground_changed(self, state):
+        self.resultFontBackground = state > 0
+        self.draw_graphics(reload_images=False, resetView=False)
+
+    def resultFontRelSize_changed(self, value):
+        self.resultFontRelSize = value
         self.draw_graphics(reload_images=False, resetView=False)
 
     def draw_graphics(self, reload_images=True, resetView=True):
@@ -762,7 +780,7 @@ class Ui(QtWidgets.QMainWindow):
                 # Draw matched pattern if present
                 if self.matchedPatterns[i,j] != "":
                     textItem = QGraphicsTextItem()
-                    textItem.setFont(QFont("Sans Serif",pointSize=fontSize//2))
+                    textItem.setFont(QFont("Sans Serif", pointSize=fontSize+self.resultFontRelSize))
                     textItem.setPlainText(self.matchedPatterns[i,j])
                     # textBR = textItem.sceneBoundingRect()
                     textItem.setPos(imagePos)
@@ -771,7 +789,7 @@ class Ui(QtWidgets.QMainWindow):
                 # Draw top labels if X axis is not None
                 if jval is not None and i == 0:
                     textItem = QGraphicsTextItem()
-                    textItem.setFont(QFont("Sans Serif",pointSize=fontSize))
+                    textItem.setFont(QFont("Sans Serif", pointSize=fontSize + self.labelRelSize))
                     textItem.setPlainText(self.xaxis+"= "+str(jval))
                     textBR = textItem.sceneBoundingRect()
                     # height/10 is the arbitary spacing that separates labels from images
@@ -783,7 +801,7 @@ class Ui(QtWidgets.QMainWindow):
                 # Draw left labels if Y axis is not None
                 if ival is not None and j == 0:
                     textItem = QGraphicsTextItem()
-                    textItem.setFont(QFont("Sans Serif", pointSize=fontSize))
+                    textItem.setFont(QFont("Sans Serif", pointSize=fontSize + self.labelRelSize))
                     textItem.setPlainText(self.yaxis+"= "+str(ival))
                     textItem.setRotation(-90)
                     textBR = textItem.sceneBoundingRect()
@@ -807,9 +825,12 @@ class Ui(QtWidgets.QMainWindow):
                         result_value_ij = self.resultArray[bool_array][self.resultName][0]
                         # Print the text
                         resultTextItem = QGraphicsTextItem()
-                        resultTextItem.setFont(QFont("Sans Serif", pointSize=fontSize, weight=35*(self.resultFontWeight-1)))
+                        resultTextItem.setFont(QFont("Sans Serif", pointSize=fontSize+self.resultFontRelSize, weight=35*(self.resultFontWeight-1)))
                         resultTextItem.setDefaultTextColor(QColor(self.resultFontColor))
-                        resultTextItem.setPlainText(str(result_value_ij))
+                        if self.resultFontBackground:
+                            resultTextItem.setHtml("<div style='background:rgba(255, 255, 255, 100%);'>" + str(result_value_ij) + "</div>")
+                        else:
+                            resultTextItem.setPlainText(str(result_value_ij))
                         resultTextItem.setPos(imagePos)
                         textBR = resultTextItem.sceneBoundingRect()
                         resultTextItem.setPos(imagePos + QPointF(imWidth/2 - textBR.width()/2, imHeight/2 - textBR.height()/2))
@@ -830,7 +851,7 @@ class Ui(QtWidgets.QMainWindow):
         self.viewRect = QRectF(self.sceneRect)
         # self.scene.addRect(self.viewRect)  # Plot the view rectangle
         textItem = QGraphicsTextItem()
-        textItem.setFont(QFont("Sans Serif", pointSize=fontSize))
+        textItem.setFont(QFont("Sans Serif", pointSize=fontSize + self.labelRelSize))
         text = ""
         for param,value in self.paramDict.items():
             if len(value) == 1: text += param + "=" + str(value[0]) + ", "
