@@ -79,4 +79,4 @@ def my_experiment(exp_id, param_dict, exp_dir):
 
 
 # Run the sweep, the function creates and fills the CSV for you
-sweep.parameter_sweep(param_sweep, my_experiment, my_sweep_dir, result_csv_filename=csv_filename)
+sweetsweep.parameter_sweep(param_sweep, my_experiment, my_sweep_dir, result_csv_filename=csv_filename)
