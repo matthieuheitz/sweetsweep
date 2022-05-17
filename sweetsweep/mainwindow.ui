@@ -220,7 +220,7 @@
              <widget class="QLabel" name="label_filePattern">
               <property name="minimumSize">
                <size>
-                <width>70</width>
+                <width>50</width>
                 <height>0</height>
                </size>
               </property>
@@ -334,8 +334,14 @@
              <layout class="QHBoxLayout" name="horizontalLayout_11">
               <item>
                <widget class="QLabel" name="label_14">
+                <property name="toolTip">
+                 <string>Relative font size</string>
+                </property>
                 <property name="text">
-                 <string>Size</string>
+                 <string/>
+                </property>
+                <property name="pixmap">
+                 <pixmap>icons/font-size.png</pixmap>
                 </property>
                </widget>
               </item>
@@ -343,18 +349,24 @@
                <widget class="QSpinBox" name="spinBox_labelRelSize">
                 <property name="minimumSize">
                  <size>
-                  <width>40</width>
+                  <width>35</width>
                   <height>0</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>16777215</height>
                  </size>
                 </property>
                 <property name="toolTip">
                  <string>Relative font size</string>
                 </property>
                 <property name="minimum">
-                 <number>-100</number>
+                 <number>-1000</number>
                 </property>
                 <property name="maximum">
-                 <number>100</number>
+                 <number>1000</number>
                 </property>
                 <property name="singleStep">
                  <number>2</number>
@@ -410,8 +422,14 @@
              <layout class="QHBoxLayout" name="horizontalLayout_8">
               <item>
                <widget class="QLabel" name="label_4">
+                <property name="toolTip">
+                 <string>Relative font size</string>
+                </property>
                 <property name="text">
-                 <string>Size</string>
+                 <string/>
+                </property>
+                <property name="pixmap">
+                 <pixmap>icons/font-size.png</pixmap>
                 </property>
                </widget>
               </item>
@@ -419,7 +437,7 @@
                <widget class="QSpinBox" name="spinBox_resultFontRelSize">
                 <property name="minimumSize">
                  <size>
-                  <width>30</width>
+                  <width>35</width>
                   <height>0</height>
                  </size>
                 </property>
@@ -427,10 +445,10 @@
                  <string>Relative font size</string>
                 </property>
                 <property name="minimum">
-                 <number>-100</number>
+                 <number>-1000</number>
                 </property>
                 <property name="maximum">
-                 <number>100</number>
+                 <number>1000</number>
                 </property>
                 <property name="singleStep">
                  <number>2</number>
@@ -446,10 +464,13 @@
                  </size>
                 </property>
                 <property name="toolTip">
-                 <string>Level of boldness (font weight)</string>
+                 <string>Boldness of the font</string>
                 </property>
                 <property name="text">
-                 <string>Bold</string>
+                 <string/>
+                </property>
+                <property name="pixmap">
+                 <pixmap>icons/bold.png</pixmap>
                 </property>
                </widget>
               </item>
@@ -468,7 +489,7 @@
                  </size>
                 </property>
                 <property name="toolTip">
-                 <string>Boldness of the font.</string>
+                 <string>Boldness of the font</string>
                 </property>
                 <property name="suffix">
                  <string/>
@@ -491,25 +512,15 @@
                </widget>
               </item>
               <item>
-               <spacer name="horizontalSpacer_2">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-              <item>
                <widget class="QLineEdit" name="lineEdit_resultFontColor">
                 <property name="minimumSize">
                  <size>
                   <width>20</width>
                   <height>0</height>
                  </size>
+                </property>
+                <property name="toolTip">
+                 <string>Color of the font</string>
                 </property>
                 <property name="inputMask">
                  <string/>
@@ -523,12 +534,40 @@
                </widget>
               </item>
               <item>
-               <widget class="QCheckBox" name="checkBox_resultBackground">
+               <widget class="QPushButton" name="pushButton_resultBackground">
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>20</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
                 <property name="toolTip">
-                 <string>Add a white background</string>
+                 <string>Add a white background to the font</string>
                 </property>
                 <property name="text">
-                 <string>BG</string>
+                 <string/>
+                </property>
+                <property name="icon">
+                 <iconset>
+                  <normaloff>icons/white-bg.png</normaloff>icons/white-bg.png</iconset>
+                </property>
+                <property name="iconSize">
+                 <size>
+                  <width>12</width>
+                  <height>12</height>
+                 </size>
+                </property>
+                <property name="checkable">
+                 <bool>true</bool>
+                </property>
+                <property name="checked">
+                 <bool>false</bool>
                 </property>
                </widget>
               </item>
@@ -537,7 +576,7 @@
             <item row="1" column="0">
              <widget class="QLabel" name="label_13">
               <property name="text">
-               <string>Result font:</string>
+               <string>Result font</string>
               </property>
              </widget>
             </item>

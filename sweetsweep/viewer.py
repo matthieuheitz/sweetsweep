@@ -233,14 +233,14 @@ class Ui(QtWidgets.QMainWindow):
         self.spinBox_labelRelSize.valueChanged.connect(self.labelRelSize_changed)
         self.lineEdit_resultFontColor.textChanged.connect(self.resultFontColor_changed)
         self.spinBox_resultFontWeight.valueChanged.connect(self.resultFontWeight_changed)
-        self.checkBox_resultBackground.stateChanged.connect(self.resultFontBackground_changed)
+        self.pushButton_resultBackground.toggled.connect(self.resultFontBackground_changed)
         self.spinBox_resultFontRelSize.valueChanged.connect(self.resultFontRelSize_changed)
         self.pushButton_saveFileBrowse.pressed.connect(self.saveFile_browse)
         self.pushButton_saveFile.pressed.connect(self.saveFile_save)
         self.doubleSpinBox_ImageReduction.valueChanged.connect(self.imageReduction_changed)
         self.plainTextEdit_notes.installEventFilter(self)
         self.pushButton_groupbox_save.pressed.connect(self.groupbox_save_toggled)
-
+    
 
         # This changes the limit of the current view, ie what we see of the scene through the widget.
         # s = 100
