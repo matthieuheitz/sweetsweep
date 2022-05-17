@@ -25,7 +25,6 @@ from PyQt5.QtGui import QPixmap, QPen, QColor, QImage, QPainter, QFont
 #  - PDF support?
 #  - Make the Size and Notes group boxes collapsible
 #  - Add a mode to plot scalar results with up to varying parameters (using matplotlib)
-#  - Increase range of label size widget
 
 
 # Because I use a "trick" to hide items of a QComboBox through its QListView,
@@ -156,6 +155,15 @@ class Ui(QtWidgets.QMainWindow):
         windowRect.setSize(screenRect.size()*0.75)
         windowRect.moveCenter(screenRect.center())
         self.setGeometry(windowRect)
+
+        # Handle behavior of the left toolbar initially and when resizing
+        # https://forum.qt.io/topic/13869/how-to-make-the-size-of-a-widget-in-a-qsplitter-fixed-when-resizing-the-qsplitter/8
+        self.widget_leftToolbar.setMinimumSize(150,0)  # First value is min width of the toolbar
+        self.splitter.setSizes([260, 1000])  # Initially, toolbar is 260. The second value has no effect.
+        self.splitter.setStretchFactor(0,0)  # When resizing the window, don't stretch the toolbar
+        self.splitter.setStretchFactor(1,1)  # When resizing the window, stretch the view widget
+        # Revert what is in the .ui file since it's there just for the preview to look like the real thing.
+        self.widget_leftToolbar.setMaximumSize(10000,10000)
 
         # Data
         self.mainFolder = ""
