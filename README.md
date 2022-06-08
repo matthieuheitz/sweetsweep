@@ -1,4 +1,4 @@
-# SweetSweep
+# sweetsweep
 A sweet app to quickly visualize results from parameter sweeps.
 Also comes with functions to run the sweeps and avoid the boilerplate code that comes with them.
 
