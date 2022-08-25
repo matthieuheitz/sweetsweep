@@ -663,6 +663,8 @@ class Ui(QtWidgets.QMainWindow):
             if self.prevTimeScandir > 0.5:
                 self.progressBar.show()
                 self.progressBar.setValue(50)
+                # For some unknown reason, the bar doesn't show up when I change the viewed file, but I don't have
+                # parameters on X or Y axis. If I do, then it shows up. So I have to repaint manually.
                 self.progressBar.repaint()
 
             t0 = time.time()
