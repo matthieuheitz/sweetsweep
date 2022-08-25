@@ -213,6 +213,7 @@ class Ui(QtWidgets.QMainWindow):
         self.viewRect = None
         self.zoom = 1
         self.pushButton_groupbox_save.setStyleSheet('text-align: left;')
+        self.prevTimeScandir = 1
 
         self.scene = QtWidgets.QGraphicsScene()
         # self.graphicsView.scale(1,-1) # Flip the y axis, but it also flips images
@@ -657,7 +658,19 @@ class Ui(QtWidgets.QMainWindow):
         nValuesY = len(yrange)
 
         if reload_images or self.currentImagePaths is None:
+
+            # For when reading files has latency (e.g. mounted folder)
+            if self.prevTimeScandir > 0.5:
+                self.progressBar.show()
+                self.progressBar.setValue(50)
+                self.progressBar.repaint()
+
+            t0 = time.time()
             alldirs = [os.path.basename(f) for f in os.scandir(self.mainFolder) if f.is_dir()]
+            t1 = time.time()
+            self.prevTimeScandir = t1-t0
+            self.progressBar.hide()  # Hide even if it wasn't shown
+
             used_dirs = alldirs.copy()
             # Find dirs that match all single parameters
             for param, value in self.paramDict.items():
