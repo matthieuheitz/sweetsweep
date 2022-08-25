@@ -329,8 +329,7 @@ class Ui(QtWidgets.QMainWindow):
         else:
             self.print("No config file 'sweep.txt' found in %s. Please provide it manually."%self.mainFolder)
             return
-        # Redraw
-        self.draw_graphics()
+        # No need to redraw here since it's alreay done by configFile_changed() in all cases
 
     def find_notes_file(self):
         """
