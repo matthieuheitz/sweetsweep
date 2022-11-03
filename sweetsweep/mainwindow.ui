@@ -599,6 +599,13 @@
             </widget>
            </item>
            <item>
+            <widget class="QProgressBar" name="progressBar">
+             <property name="value">
+              <number>24</number>
+             </property>
+            </widget>
+           </item>
+           <item>
             <widget class="QPushButton" name="pushButton_groupbox_save">
              <property name="maximumSize">
               <size>
@@ -689,32 +696,34 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="groupBox_notes">
-             <property name="title">
-              <string>Notes</string>
-             </property>
-             <layout class="QGridLayout" name="gridLayout_3">
-              <item row="0" column="0">
-               <widget class="QPlainTextEdit" name="plainTextEdit_notes"/>
+            <widget class="QWidget" name="widget" native="true">
+             <layout class="QVBoxLayout" name="verticalLayout_5">
+              <item>
+               <widget class="QSplitter" name="splitter_notes_log">
+                <property name="orientation">
+                 <enum>Qt::Vertical</enum>
+                </property>
+                <widget class="QGroupBox" name="groupBox_notes">
+                 <property name="title">
+                  <string>Notes</string>
+                 </property>
+                 <layout class="QVBoxLayout" name="verticalLayout_4">
+                  <item>
+                   <widget class="QPlainTextEdit" name="plainTextEdit_notes"/>
+                  </item>
+                 </layout>
+                </widget>
+                <widget class="QPlainTextEdit" name="text_log">
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                </widget>
+               </widget>
               </item>
              </layout>
-            </widget>
-           </item>
-           <item>
-            <widget class="QProgressBar" name="progressBar">
-             <property name="value">
-              <number>24</number>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QPlainTextEdit" name="text_log">
-             <property name="maximumSize">
-              <size>
-               <width>16777215</width>
-               <height>40</height>
-              </size>
-             </property>
             </widget>
            </item>
            <item>

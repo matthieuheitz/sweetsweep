@@ -165,6 +165,10 @@ class Ui(QtWidgets.QMainWindow):
         # Revert what is in the .ui file since it's there just for the preview to look like the real thing.
         self.widget_leftToolbar.setMaximumSize(10000,10000)
 
+        # Split between notes and log
+        self.text_log.setMinimumSize(0,40)  # Second value is min width of the log
+        self.splitter_notes_log.setSizes([1000, 40])  # Initially, notes are as big as possible and log is 40.
+
         # Data
         self.mainFolder = ""
         self.configFile = ""
