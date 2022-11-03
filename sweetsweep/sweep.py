@@ -213,6 +213,7 @@ def check_exp_redundancy(sweep_dict, specific_dict, current_dict):
         # parameter (could be any of them), and for the others, make symbolic links.
         match_condition = True
         for k3, v3 in v2.items():
+            if not isinstance(v3,list): v3 = [v3]  # Support lists and singletons
             if not k3 in sweep_dict:
                 print("ERROR: parameter '%s' is not in sweep_dict."%k3)
                 exit(-1)
