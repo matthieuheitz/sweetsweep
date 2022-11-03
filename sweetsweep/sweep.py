@@ -110,7 +110,7 @@ def parameter_sweep(param_dict, experiment_func, sweep_dir, start_index=0, resul
                             csv_row += list(result_dict.values())   # Write returned data
                             csv_writer.writerow(csv_row)
                     else:
-                        print("WARNING: Can't write results to CSV: received 'None' from experiment_func().")
+                        print("WARNING: Experiment %d - can't write results to CSV, received 'None' from experiment_func()."%exp_id)
 
                 exp_id = exp_id + 1
 
@@ -277,7 +277,7 @@ def parameter_sweep_parallel(param_dict, experiment_func, sweep_dir, max_workers
             if result_dict:
                 result_queue.put((exp_id, current_dict, result_dict))
             else:
-                print("WARNING: Can't write results to CSV: received 'None' from experiment_func().")
+                print("WARNING: Experiment %d - can't write results to CSV, received 'None' from experiment_func()."%exp_id)
 
         return result_dict
 
