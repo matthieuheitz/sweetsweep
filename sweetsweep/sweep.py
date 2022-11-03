@@ -30,8 +30,11 @@ import csv
 #              {"alpha":["A","B","C"],"beta":[1,2,3],"gamma":[0.5,0.6,0.7]}, and you know that "gamma"=0.7 is good for
 #              "beta"=1 or 2, but isn't relevant for 3, you can skip it by passing skip_exps={"gamma":0.7,"beta":3}.
 #              Use a list of dictionaries if there are multiple independent conditions to skip.
+# - only_exp_id: an integer indicating an experiment index. Only the experiment corresponding to this id will be run
+#               instead of the whole sweep. This is useful when doing sweeps on a cluster, e.g. for array jobs.
+#               Values must be between 0 and the total number of experiments.
 def parameter_sweep(param_dict, experiment_func, sweep_dir, start_index=0, result_csv_filename="", specific_dict=None,
-                    skip_exps=None):
+                    skip_exps=None, only_exp_id=None):
 
     if not param_dict:
         print("The parameter dictionary is empty. Nothing to do.")
@@ -48,7 +51,14 @@ def parameter_sweep(param_dict, experiment_func, sweep_dir, start_index=0, resul
         current_dict[k] = param_dict[k][0]
         num_exp *= len(param_dict[k])
 
-    print("\nThere are",num_exp,"experiments in total.\n")
+    if only_exp_id is not None:
+        if only_exp_id > num_exp-1 or only_exp_id < 0:
+            print("ERROR: The exp_id provided (%d) must be between 0 and the total number of experiments minus one (%d)"%(only_exp_id,num_exp-1))
+        else:
+            print("\nRunning 1 experiment out of", num_exp, "in total.\n")
+    else:
+        print("\nThere are",num_exp,"experiments in total.\n")
+
     # if specific_dict:
     #     num_unique_exp = get_num_unique_exp(param_dict,specific_dict)
     #     print("There are %d unique experiments and %d redundant ones"%(num_unique_exp,num_exp-num_unique_exp))
@@ -63,7 +73,8 @@ def parameter_sweep(param_dict, experiment_func, sweep_dir, start_index=0, resul
                 # print("\nExperiment #%d:" % exp_id, current_dict)
 
                 # Check if need to skip this experiment
-                if skip_exps and check_skip_exp(current_dict,skip_exps):
+                if (only_exp_id is not None and only_exp_id != exp_id) or \
+                        (skip_exps is not None and check_skip_exp(current_dict, skip_exps)):
                     # print("Skipping")
                     exp_id = exp_id + 1
                     continue
@@ -82,7 +93,13 @@ def parameter_sweep(param_dict, experiment_func, sweep_dir, start_index=0, resul
                     # Make the symlink
                     os.symlink(src_exp_dir, exp_dir, target_is_directory=True)
                     # Get results from src experiment
-                    result_dict = result_list[src_exp_id]
+                    if src_exp_id not in result_list:
+                        # This means we have been running tests using --only-exp
+                        # So we have to read the results from the csv file (slower)
+                        if result_csv_filename:
+                            result_dict = get_result_dict_from_file(csv_path, current_dict, src_exp_id)
+                    else:
+                        result_dict = result_list[src_exp_id]
 
                 # Otherwise, run the experiment
                 else:
@@ -120,6 +137,22 @@ def parameter_sweep(param_dict, experiment_func, sweep_dir, start_index=0, resul
     t0 = time.time()
     recursive_call(start_index, current_dict, 0)
     print("Total time of all experiments:",time.time()-t0)
+
+
+def get_result_dict_from_file(result_csv_filename, param_dict, exp_id):
+    # import numpy as np
+    # resultArray = np.genfromtxt(result_csv_filename, delimiter=',', names=True, dtype=None, encoding=None)
+    # allResultNames = [name for name in resultArray.dtype.names if name not in (list(param_dict.keys())+['exp_id'])]
+
+    offset = 2 + len(param_dict.keys())  # Skip 'exp_id', 'src_exp_id' and parameters, to only get the results.
+    with open(result_csv_filename, newline='') as csvfile:
+        csv_reader = csv.reader(csvfile)
+        header = next(csv_reader)
+        for i, row in enumerate(csv_reader):
+            if i == exp_id:
+                result_dict = dict(zip(header[offset:], row[offset:]))
+                break
+    return result_dict
 
 
 def get_num_exp(sweep_dict):
