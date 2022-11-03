@@ -259,6 +259,25 @@ def check_skip_exp(current_dict, skip_exps):
     return False
 
 
+# Make list of parameter dictionaries (one for each experiment)
+def make_param_dict_list(param_dict):
+    return make_param_dict_list_recursive(param_dict, {}, 0)
+
+
+# Recursive function to make list of parameter dictionaries
+def make_param_dict_list_recursive(param_dict, current_dict, param_index):
+    current_key = list(param_dict.keys())[param_index]
+    param_dict_list = []
+    for v in param_dict[current_key]:
+        current_dict[current_key] = v
+        if param_index == len(param_dict.keys())-1:
+            param_dict_list.append(current_dict.copy())
+        else:
+            param_dict_list += make_param_dict_list_recursive(param_dict, current_dict, param_index+1)
+
+    return param_dict_list
+
+
 # Same function as above, except that it runs the sweep with a multiprocessing pool of `max_workers` workers.
 # The results are written individually to the CSV file as they are produced, so that it's always readable
 # during the sweep
@@ -281,19 +300,7 @@ def parameter_sweep_parallel(param_dict, experiment_func, sweep_dir, max_workers
     print("\nThere are ",num_exp,"experiments in total.\n")
 
     # Get list of parameter dictionaries (one for each experiment)
-    def make_paramdict_list(current_dict, param_index):
-        current_key = list(param_dict.keys())[param_index]
-        param_dict_list = []
-        for v in param_dict[current_key]:
-            current_dict[current_key] = v
-            if param_index == len(param_dict.keys())-1:
-                param_dict_list.append(current_dict.copy())
-            else:
-                param_dict_list += make_paramdict_list(current_dict, param_index+1)
-
-        return param_dict_list
-
-    paramdict_list = make_paramdict_list(current_dict, 0)
+    param_dict_list = make_param_dict_list(param_dict)
 
     # Experiment worker
     def run_experiment(exp_id, current_dict, result_queue):
@@ -346,6 +353,6 @@ def parameter_sweep_parallel(param_dict, experiment_func, sweep_dir, max_workers
         # Put listener to work first
         watcher = pool.apply_async(write_results_to_csv, (queue,))
         # Spawn workers
-        pool.starmap(run_experiment, zip(range(start_index,num_exp+start_index), paramdict_list, [queue]*num_exp))
+        pool.starmap(run_experiment, zip(range(start_index,num_exp+start_index), param_dict_list, [queue]*num_exp))
 
     print("Total time of all experiments:",time.time()-t0)
