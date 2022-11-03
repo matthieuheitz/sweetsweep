@@ -26,9 +26,10 @@ import csv
 #                  {"alpha":["A","B","C"],"beta":[1,2,3]}, but 'beta' only changes the result of the experiment when
 #                  'alpha'="B", then set specific_dict={"beta":{"alpha":"B"}}. This way, the redundant experiments
 #                  of different values of 'beta' when 'alpha" = "A" or "C" will not be computed.
-# - skip_exps: a dictionary of the sets of experiments to skip. Example: if your sweep is
-#              {"alpha":["A","B","C"],"beta":[1,2,3],"gamma"=[0.5,0.6,0.7]}, and you know that "gamma"=0.7 is good for
-#              "beta"=1 or 2, but isn't relevant for 3, you can skip it by passing skip_exps={gamma":0.7,"beta":3}
+# - skip_exps: a dictionary (or a list of dictionaries) of the sets of experiments to skip. Example: if your sweep is
+#              {"alpha":["A","B","C"],"beta":[1,2,3],"gamma":[0.5,0.6,0.7]}, and you know that "gamma"=0.7 is good for
+#              "beta"=1 or 2, but isn't relevant for 3, you can skip it by passing skip_exps={"gamma":0.7,"beta":3}.
+#              Use a list of dictionaries if there are multiple independent conditions to skip.
 def parameter_sweep(param_dict, experiment_func, sweep_dir, start_index=0, result_csv_filename="", specific_dict=None,
                     skip_exps=None):
 
@@ -206,13 +207,22 @@ def check_exp_redundancy(sweep_dict, specific_dict, current_dict):
         return -1, {}
 
 
-def check_skip_exp(current_dict,skip_exps):
-
+def check_skip_exp(current_dict, skip_exps):
+    if not isinstance(skip_exps, list):
+        skip_exps = [skip_exps]
     for condition in skip_exps:
+        skip = True
+        if not condition: continue
         for k,v in condition.items():
+            if not isinstance(v,list): v = [v]
+            if not k in current_dict:
+                print("ERROR: parameter '%s' is not in current_dict." % k)
             if current_dict[k] not in v:
-                return False
-    return True
+                skip = False
+                break
+        if skip:
+            return True
+    return False
 
 
 # Same function as above, except that it runs the sweep with a multiprocessing pool of `max_workers` workers.
