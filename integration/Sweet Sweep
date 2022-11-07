@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# This file is intended for Ubuntu/Nautilus users, to put in ~/.local/share/nautilus/scripts
+# It allows to open local and sftp-mounted sweep folder with the viewer, with only a few clicks.
+
+# Debug
+#gxmessage "$NAUTILUS_SCRIPT_SELECTED_FILE_PATHS" 
+#gxmessage "$NAUTILUS_SCRIPT_SELECTED_URIS"
+
+FOLDER=$NAUTILUS_SCRIPT_SELECTED_URIS
+
+if  [[ $FOLDER == file://* ]];
+then
+    FULL_PATH=${FOLDER:7}
+elif [[ $FOLDER == sftp://* ]];
+then
+    USER=$(echo "$FOLDER" | sed -e 's!sftp://\(.*\)@.*!\1!')
+    HOST=$(echo "$FOLDER" | sed -e 's!.*@\([^/]*\).*!\1!')
+    REMOTE_DIR=$(echo "$FOLDER" | sed -e 's!sftp://\(.*\)!\1!' | sed -e 's![^/]*\(.*\)!\1!')
+    FULL_PATH="/run/user/$(id -u)/gvfs/sftp:host=${HOST},user=${USER}${REMOTE_DIR}"
+#    gxmessage "$USER -- $HOST -- $REMOTE_DIR"
+fi
+
+# xargs removes trailing whitespaces
+python3 -m sweetsweep "$(echo "$FULL_PATH" | xargs)"
+
