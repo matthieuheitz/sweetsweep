@@ -51,9 +51,12 @@ def parameter_sweep(param_dict, experiment_func, sweep_dir, start_index=0, resul
         current_dict[k] = param_dict[k][0]
         num_exp *= len(param_dict[k])
 
+    if start_index < 0:
+        print("ERROR: start_index (%d) must be >= 0"%start_index)
+
     if only_exp_id is not None:
-        if only_exp_id > num_exp-1 or only_exp_id < 0:
-            print("ERROR: The exp_id provided (%d) must be between 0 and the total number of experiments minus one (%d)"%(only_exp_id,num_exp-1))
+        if only_exp_id > start_index + num_exp-1 or only_exp_id < start_index:
+            print("ERROR: The exp_id provided (%d) must be between %d and %d"%(only_exp_id,start_index,start_index+num_exp-1))
         else:
             print("\nRunning 1 experiment out of", num_exp, "in total.\n")
     else:
@@ -83,12 +86,11 @@ def parameter_sweep(param_dict, experiment_func, sweep_dir, start_index=0, resul
                 exp_dir = os.path.join(sweep_dir, build_dir_name(num_exp, exp_id, current_dict))
 
                 # Check whether this experiment is redundant
-                src_exp_id, src_exp_dict = check_exp_redundancy(param_dict, specific_dict, current_dict)
+                src_exp_id, src_exp_dict = check_exp_redundancy(param_dict, specific_dict, current_dict, start_index)
 
                 # If it's redundant, make a symlink to the source experiment directory
                 if src_exp_id != -1:
                     # Get the src dir name
-                    src_exp_id += start_index   # Apply the index offset
                     src_exp_dir = build_dir_name(num_exp, src_exp_id, src_exp_dict)
                     # Make the symlink
                     os.symlink(src_exp_dir, exp_dir, target_is_directory=True)
@@ -198,7 +200,7 @@ def get_exp_id(sweep_dict, current_dict):
 
 # Check whether an experiment is redundant or not, based on a specificity dictionary
 # If it is, it returns the id and param dictionary of the experiment to copy from
-def check_exp_redundancy(sweep_dict, specific_dict, current_dict):
+def check_exp_redundancy(sweep_dict, specific_dict, current_dict, start_index):
 
     if not specific_dict:
         return -1, {}
@@ -234,7 +236,7 @@ def check_exp_redundancy(sweep_dict, specific_dict, current_dict):
         src_dict = current_dict.copy()
         for p in param_change:
             src_dict[p] = sweep_dict[p][0]
-        src_exp_id = get_exp_id(sweep_dict, src_dict)
+        src_exp_id = start_index + get_exp_id(sweep_dict, src_dict)
         # print("-> symlink to exp #%d"%src_exp_id,":",src_dict)
         return src_exp_id, src_dict
     else:
