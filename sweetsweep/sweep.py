@@ -3,6 +3,7 @@
 import os
 import time
 import csv
+import io
 
 
 # This function performs a parameter sweep.
@@ -42,7 +43,6 @@ def parameter_sweep(param_dict, experiment_func, sweep_dir, start_index=0, resul
 
     # Set some variables
     csv_path = os.path.join(sweep_dir, result_csv_filename)
-    result_list = {}
 
     # Fill the current_dict and count number of experiments
     current_dict = {}
@@ -88,20 +88,30 @@ def parameter_sweep(param_dict, experiment_func, sweep_dir, start_index=0, resul
                 # Check whether this experiment is redundant
                 src_exp_id, src_exp_dict = check_exp_redundancy(param_dict, specific_dict, current_dict, start_index)
 
+                # Write the csv row prefix
+                csv_row_prefix = ""
+                if result_csv_filename:
+                    csv_row_prefix = [exp_id, src_exp_id] + list(current_dict.values())
+
                 # If it's redundant, make a symlink to the source experiment directory
                 if src_exp_id != -1:
                     # Get the src dir name
                     src_exp_dir = build_dir_name(num_exp, src_exp_id, src_exp_dict)
                     # Make the symlink
-                    os.symlink(src_exp_dir, exp_dir, target_is_directory=True)
-                    # Get results from src experiment
-                    if src_exp_id not in result_list:
-                        # This means we have been running tests using --only-exp
-                        # So we have to read the results from the csv file (slower)
-                        if result_csv_filename:
-                            result_dict = get_result_dict_from_file(csv_path, current_dict, src_exp_id)
-                    else:
-                        result_dict = result_list[src_exp_id]
+                    try:
+                        os.symlink(src_exp_dir, exp_dir, target_is_directory=True)
+                    except FileExistsError:
+                        pass
+
+                    # Write the results in the CSV
+                    # The results are the same as for src_exp_id, so don't rewrite them,
+                    # just write src_exp_id and the set of parameters.
+                    if result_csv_filename:
+                        # Save additional results by writing them to the CSV
+                        with open(csv_path, mode='a') as csv_file:
+                            csv_writer = csv.writer(csv_file)
+                            # csv_row += list(result_dict.values())   # Write returned data
+                            csv_writer.writerow(csv_row_prefix)
 
                 # Otherwise, run the experiment
                 else:
@@ -109,27 +119,17 @@ def parameter_sweep(param_dict, experiment_func, sweep_dir, start_index=0, resul
                     os.makedirs(exp_dir, exist_ok=True)
                     # Run the experiment
                     result_dict = experiment_func(exp_id, current_dict, exp_dir)
-                    # Store the result
-                    result_list[exp_id] = result_dict
 
-                # Add results to the CSV file
-                if result_csv_filename:
-                    if result_dict:
-                        # On first experiment, write the CSV header
-                        if exp_id == start_index:
-                            # Create the csv file, write the header.
-                            with open(csv_path, mode='w') as csv_file:
-                                csv_writer = csv.writer(csv_file)
-                                csv_writer.writerow(["exp_id","src_exp_id"] + list(param_dict.keys()) + list(result_dict.keys()))
+                    if result_csv_filename:
+                        if not result_dict:
+                            print("WARNING: Experiment %d - can't write results to CSV, didn't receive results "
+                                  "from experiment_func()." % exp_id)
 
-                        # Save additional results by writing them to the CSV
-                        with open(csv_path, mode='a') as csv_file:
-                            csv_writer = csv.writer(csv_file)
-                            csv_row = [exp_id, src_exp_id] + list(current_dict.values())    # Write exp_id and current param values
-                            csv_row += list(result_dict.values())   # Write returned data
-                            csv_writer.writerow(csv_row)
-                    else:
-                        print("WARNING: Experiment %d - can't write results to CSV, received 'None' from experiment_func()."%exp_id)
+                        # Write the header (does nothing if already written)
+                        csv_write_header(csv_path, current_dict, result_dict)
+
+                        # Write results to the CSV
+                        csv_write_result(csv_path, csv_row_prefix, result_dict)
 
                 exp_id = exp_id + 1
 
@@ -141,20 +141,56 @@ def parameter_sweep(param_dict, experiment_func, sweep_dir, start_index=0, resul
     print("Total time of all experiments:",time.time()-t0)
 
 
-def get_result_dict_from_file(result_csv_filename, param_dict, exp_id):
-    # import numpy as np
-    # resultArray = np.genfromtxt(result_csv_filename, delimiter=',', names=True, dtype=None, encoding=None)
-    # allResultNames = [name for name in resultArray.dtype.names if name not in (list(param_dict.keys())+['exp_id'])]
+# Write results of one experiment in the CSV (one single line)
+def csv_write_result(csv_path, csv_row_prefix, result_dict):
+    # Save additional results by writing them to the CSV
+    with open(csv_path, mode='a') as csv_file:
+        csv_writer = csv.writer(csv_file)
+        csv_row = csv_row_prefix + list(result_dict.values())  # Write returned data
+        csv_writer.writerow(csv_row)
 
-    offset = 2 + len(param_dict.keys())  # Skip 'exp_id', 'src_exp_id' and parameters, to only get the results.
-    with open(result_csv_filename, newline='') as csvfile:
-        csv_reader = csv.reader(csvfile)
-        header = next(csv_reader)
-        for i, row in enumerate(csv_reader):
-            if i == exp_id:
-                result_dict = dict(zip(header[offset:], row[offset:]))
-                break
-    return result_dict
+
+# This function writes the header of the CSV file if it's not written yet
+# If the file doesn't exist, it creates it and adds the header
+# If the file exists but doesn't start with the header, it prepends it.
+# This can happen when experiments are not run in the natural order,
+# i.e. when a redundant experiment is run before its source experiment.
+def csv_write_header(csv_path, current_dict, result_dict):
+    # Check if header exists
+    file_exists = os.path.exists(csv_path)
+    if file_exists:
+        if file_get_first_line(csv_path).startswith("exp_id"):
+            return
+
+    # Build the CSV header
+    header_line = io.StringIO()
+    writer = csv.writer(header_line)
+    csv_header = ["exp_id", "src_exp_id"] + list(current_dict.keys()) + list(result_dict.keys())
+    writer.writerow(csv_header)
+    header_str = header_line.getvalue()
+
+    # Write the header
+    if not file_exists:
+        # Create the csv file and write the header.
+        with open(csv_path, mode='w') as f:
+            f.write(header_str)
+    else:
+        # If file exists, then the first line can't be a header,
+        # otherwise we would have returned early.
+        file_prepend_line(csv_path, header_str)
+
+
+def file_get_first_line(filename):
+    with open(filename) as f:
+        return f.readline()
+
+
+# https://stackoverflow.com/a/5917395/4195725
+def file_prepend_line(filename, line):
+    with open(filename, 'r+') as f:
+        content = f.read()
+        f.seek(0, 0)
+        f.write(line.rstrip('\r\n') + '\n' + content)
 
 
 def get_num_exp(sweep_dict):

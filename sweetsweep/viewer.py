@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-
+import csv
 import os
 import sys
 import time
 import json
+import io
 
 import PyQt5.QtDesigner
 import numpy as np
@@ -487,13 +488,7 @@ class Ui(QtWidgets.QMainWindow):
         if "viewer_resultsCSV" in self.fullParamDict:
             self.resultsCSV = self.fullParamDict["viewer_resultsCSV"]
             # Read CSV
-            try:
-                self.resultArray = np.genfromtxt(os.path.join(os.path.dirname(path), self.resultsCSV), delimiter=',', names=True, dtype=None, encoding=None)
-                self.allResultNames = [name for name in self.resultArray.dtype.names if name not in (self.allParamNames + ["exp_id"])]
-            except Exception as e:
-                self.print("Exception:",e)
-                self.print("Unable to read result file '%s'."%self.resultsCSV)
-                self.allResultNames = []
+            self.read_resultsCSV(os.path.join(os.path.dirname(path), self.resultsCSV))
             del self.fullParamDict["viewer_resultsCSV"]
         if "viewer_notesFile" in self.fullParamDict:
             self.notesFile = os.path.join(self.mainFolder,self.fullParamDict["viewer_notesFile"])
@@ -507,9 +502,12 @@ class Ui(QtWidgets.QMainWindow):
         # Populate the axis comboboxes
         self.comboBox_xaxis.addItems(self.allParamNames)
         self.comboBox_yaxis.addItems(self.allParamNames)
-        self.comboBox_result.addItems(["exp_id",] + self.allResultNames)
+        # Populate result combobox if a csv was read
+        if self.resultArray is not None:
+            self.comboBox_result.addItems(["exp_id",] + self.allResultNames)
         # Redraw
         self.draw_graphics()
+
 
     def populate_parameterControls(self):
         for i, (param,values) in enumerate(self.fullParamDict.items()):
@@ -646,6 +644,28 @@ class Ui(QtWidgets.QMainWindow):
     def resultFontRelSize_changed(self, value):
         self.resultFontRelSize = value
         self.draw_graphics(reload_images=False, resetView=False)
+
+    def read_resultsCSV(self, csv_path):
+        with open(csv_path, newline='') as csv_file:
+            csv_reader = csv.reader(csv_file)
+            header = next(csv_reader)
+            csv_all = [row for row in csv_reader]
+        csv_dict = {row[0]: row[1:] for row in csv_all}
+        # Replace values in redundant experiments
+        for row in csv_all:
+            src_exp_id = row[1]
+            row_prefix_len = len(row)
+            if src_exp_id != '-1':
+                row += csv_dict[src_exp_id][row_prefix_len - 1:]
+        imputed_csv_file = "\n".join([",".join(row) for row in [header] + csv_all])
+        try:
+            self.resultArray = np.genfromtxt(io.StringIO(imputed_csv_file), delimiter=',', names=True, dtype=None, encoding=None)
+            # self.resultArray = np.genfromtxt(csv_path, delimiter=',', names=True, dtype=None, encoding=None)
+            self.allResultNames = [name for name in self.resultArray.dtype.names if name not in (self.allParamNames + ["exp_id"])]
+        except Exception as e:
+            self.print("Exception:", e)
+            self.print("Unable to read result file '%s'." % self.resultsCSV)
+            self.allResultNames = []
 
     def draw_graphics(self, reload_images=True, resetView=True):
         # print("Draw!")
