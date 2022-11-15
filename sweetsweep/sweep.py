@@ -155,6 +155,16 @@ def csv_write_result(csv_path, csv_row_prefix, result_dict):
 # If the file exists but doesn't start with the header, it prepends it.
 # This can happen when experiments are not run in the natural order,
 # i.e. when a redundant experiment is run before its source experiment.
+#
+# One issue with this way of doing things is that when all experiments
+# finish at the same time, then the csv file can have mistakes, like the
+# header may appear twice, and/or some lines might be missing as they are
+# overwritten by another experiment. This is very rare, and if it happens,
+# Put a delay e.g. proportional to exp_id, to avoid that situation.
+# I tried to fix it with threading.Lock(), but it didn't work...
+# If I wanted to debug it further, I could look at the different states
+# the csv file goes through at that time, maybe using auditctl?
+# https://unix.stackexchange.com/a/12251/120494
 def csv_write_header(csv_path, current_dict, result_dict):
     # Check if header exists
     file_exists = os.path.exists(csv_path)
