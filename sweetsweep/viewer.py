@@ -18,6 +18,10 @@ from PyQt5.QtCore import Qt, QRect, QRectF, QPoint, QPointF, QSize, QSizeF, QLin
 from PyQt5.QtWidgets import QGraphicsView, QLabel, QFileDialog, QComboBox, QGraphicsPixmapItem, QDesktopWidget, QGraphicsTextItem, QPushButton, QGroupBox, QFrame
 from PyQt5.QtGui import QPixmap, QPen, QColor, QImage, QPainter, QFont
 
+import matplotlib
+matplotlib.use('Qt5Agg')
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationToolbar2QT as NavigationToolbar
+from matplotlib.figure import Figure
 
 # TODO
 #  - Prevent users from loading sweep file (and result file) if mainfolder is not valid (grey/hide widgets out?)
@@ -94,6 +98,14 @@ QSize.__iter__ = lambda s: iter([s.width(),s.height()])
 QSizeF.__iter__ = lambda s: iter([s.width(),s.height()])
 QPoint.__iter__ = lambda s: iter([s.x(),s.y()])
 QPointF.__iter__ = lambda s: iter([s.x(),s.y()])
+
+
+# Class for a matplotlib figure
+class MplCanvas(FigureCanvasQTAgg):
+    def __init__(self, parent=None, width=5, height=4, dpi=100):
+        fig = Figure(figsize=(width, height), dpi=dpi)
+        self.axes = fig.add_subplot(111)
+        super(MplCanvas, self).__init__(fig)
 
 
 # Scene where we can zoom and move around with the mouse
@@ -254,7 +266,7 @@ class Ui(QtWidgets.QMainWindow):
         self.doubleSpinBox_ImageReduction.valueChanged.connect(self.imageReduction_changed)
         self.plainTextEdit_notes.installEventFilter(self)
         self.pushButton_groupbox_save.pressed.connect(self.groupbox_save_toggled)
-    
+        self.checkBox_result_matrix.stateChanged.connect(self.resultMatrix_checked)
 
         # This changes the limit of the current view, ie what we see of the scene through the widget.
         # s = 100
@@ -645,6 +657,9 @@ class Ui(QtWidgets.QMainWindow):
         self.resultFontRelSize = value
         self.draw_graphics(reload_images=False, reset_view=False)
 
+    def resultMatrix_checked(self, state):
+        self.draw_graphics()
+
     def read_resultsCSV(self, csv_path):
         with open(csv_path, newline='') as csv_file:
             csv_reader = csv.reader(csv_file)
@@ -668,6 +683,13 @@ class Ui(QtWidgets.QMainWindow):
             self.allResultNames = []
 
     def draw_graphics(self, reload_images=True, reset_view=True):
+        """
+        Draw the scene
+        :param reload_images: Whether we need to reload displayed images from the disk
+        :param reset_view: Whether to reset the view (which could have been changed e.g. by zooming in)
+        :return: nothing
+        """
+
         # print("Draw!")
         # Clear the scene before drawing
         self.scene.clear()
@@ -791,103 +813,155 @@ class Ui(QtWidgets.QMainWindow):
         show_pbar = nValuesX*nValuesY > 1 and reload_images
         if show_pbar: self.progressBar.show()
 
-        # Draw images and labels
-        for i, ival in enumerate(yrange):
-            for j, jval in enumerate(xrange):
+        # If display result matrix
+        if self.checkBox_result_matrix.isChecked():
+            if self.resultName == self.comboBox_noneChoice:
+                self.print("Select a result to plot")
+            else:
+                # Debug
+                # matplotlib.use('Qt5Agg')
+                # import matplotlib.pyplot as plt
+                # fig = plt.figure()
+                # ax = fig.add_subplot(111)
 
-                # Update progress bar
-                if show_pbar: self.progressBar.setValue(int((i*nValuesX+j)/(nValuesX*nValuesY-1)*100))
+                # Check color
+                if not matplotlib.colors.is_color_like(self.resultFontColor):
+                    self.resultFontColor = "black"
+                # Check text background
+                text_bbox = {"facecolor": 'white', "linewidth": 0, "pad": 1} if self.resultFontBackground else None
 
-                # Compute image position and frame size
-                imagePos = QPointF(j * (imWidth + self.imageSpacing[0]), i * (imHeight + self.imageSpacing[1]))
-                frameRect = QRectF(imagePos,QSizeF(cropRect.size()))
+                # Create the figure
+                canvas = MplCanvas(self, width=7, height=7, dpi=500)
+                ax = canvas.axes
+                fig = canvas.figure
+                # Plot the values
+                # sc.axes.plot([0, 1, 2, 3, 4], [10, 1, 20, 3, 40])
+                resultMatrix = self.resultArray[non_axis_bool_array][self.resultName].reshape(nValuesX,nValuesY).T
+                im = ax.matshow(resultMatrix)
+                for i in range(nValuesY):
+                    for j in range(nValuesX):
+                        c = resultMatrix[i, j]
+                        ax.text(j, i, str(c), va='center', ha='center', c=self.resultFontColor, bbox=text_bbox,
+                                fontsize=10+self.resultFontRelSize/2, fontweight=250*self.resultFontWeight)
+                ax.set_xticks(range(nValuesX))
+                ax.set_yticks(range(nValuesY))
+                ax.set_xticklabels(xrange)
+                ax.set_yticklabels(yrange)
+                ax.xaxis.set_label_position('top')
+                if self.xaxis != self.comboBox_noneChoice: ax.set_xlabel(self.xaxis)
+                if self.yaxis != self.comboBox_noneChoice: ax.set_ylabel(self.yaxis)
+                fig.tight_layout()
+                # fig.colorbar(im)  # Not necessary since we plot the exact values
 
-                # Draw existing images
-                if self.currentImagePaths[i,j]:
-                    # Load the image
-                    if reload_images:
-                        self.currentImages[i,j] = QPixmap(self.currentImagePaths[i,j])
-                        # print("Loading image",i,j)
-                    # This way of drawing assumes all images have the size of the first image
-                    # Crop the image
-                    pc = self.currentImages[i,j].copy(cropRect)
+                # # Create toolbar, passing canvas as first parament, parent (self, the MainWindow) as second.
+                # toolbar = NavigationToolbar(canvas, self)
+                # # Create a placeholder widget to hold our toolbar and canvas.
+                # layout = QtWidgets.QVBoxLayout()
+                # layout.addWidget(toolbar)
+                # layout.addWidget(canvas)
+                # widget = QtWidgets.QWidget()
+                # widget.setLayout(layout)
+                # self.scene.addWidget(widget)
+                self.scene.addWidget(canvas)
 
-                    # Draw the image
-                    imageItem = QGraphicsPixmapItem(pc)
-                    imageItem.setOffset(imagePos)
-                    self.scene.addItem(imageItem)
-                # Draw placeholders where there are no images
-                else:
-                    rect = QRectF(QPointF(),frameRect.size()*0.5)
-                    rect.moveCenter(frameRect.center())
-                    pen = QPen(QColor(self.imageFrameColor),5)
-                    self.scene.addLine(QLineF(rect.topLeft(),rect.bottomRight()),pen)
-                    self.scene.addLine(QLineF(rect.bottomLeft(),rect.topRight()),pen)
+        else:  # If display image matrix
+            # Draw images and labels
+            for i, ival in enumerate(yrange):
+                for j, jval in enumerate(xrange):
 
-                # Draw matched pattern if present
-                if self.matchedPatterns[i,j] != "":
-                    textItem = QGraphicsTextItem()
-                    textItem.setFont(QFont("Sans Serif", pointSize=fontSize+self.resultFontRelSize))
-                    textItem.setPlainText(self.matchedPatterns[i,j])
-                    # textBR = textItem.sceneBoundingRect()
-                    textItem.setPos(imagePos)
-                    self.scene.addItem(textItem)
+                    # Update progress bar
+                    if show_pbar: self.progressBar.setValue(int((i*nValuesX+j)/(nValuesX*nValuesY-1)*100))
 
-                # Draw top labels if X axis is not None
-                if jval is not None and i == 0:
-                    textItem = QGraphicsTextItem()
-                    textItem.setFont(QFont("Sans Serif", pointSize=fontSize + self.labelRelSize))
-                    textItem.setPlainText(self.xaxis+"= "+str(jval))
-                    textBR = textItem.sceneBoundingRect()
-                    # height/10 is the arbitary spacing that separates labels from images
-                    # Subtract textBR.height() on Y so that the bottom of the text is always imHeight/10 from the image
-                    textItem.setPos(imagePos + QPointF(imWidth/2 - textBR.width()/2, -labelSpacing - textBR.height()))
-                    textItem.setTextWidth(imWidth)
-                    self.scene.addItem(textItem)
+                    # Compute image position and frame size
+                    imagePos = QPointF(j * (imWidth + self.imageSpacing[0]), i * (imHeight + self.imageSpacing[1]))
+                    frameRect = QRectF(imagePos,QSizeF(cropRect.size()))
 
-                # Draw left labels if Y axis is not None
-                if ival is not None and j == 0:
-                    textItem = QGraphicsTextItem()
-                    textItem.setFont(QFont("Sans Serif", pointSize=fontSize + self.labelRelSize))
-                    textItem.setPlainText(self.yaxis+"= "+str(ival))
-                    textItem.setRotation(-90)
-                    textBR = textItem.sceneBoundingRect()
-                    textItem.setPos(imagePos + QPointF(-labelSpacing - textBR.width(), imHeight/2 + textBR.height()/2))
-                    textItem.setTextWidth(imHeight)
-                    self.scene.addItem(textItem)
+                    # Draw existing images
+                    if self.currentImagePaths[i,j]:
+                        # Load the image
+                        if reload_images:
+                            self.currentImages[i,j] = QPixmap(self.currentImagePaths[i,j])
+                            # print("Loading image",i,j)
+                        # This way of drawing assumes all images have the size of the first image
+                        # Crop the image
+                        pc = self.currentImages[i,j].copy(cropRect)
 
-                # Draw the result if one is selected
-                if self.resultName != self.comboBox_noneChoice:
-                    # Get row corresponding to the current set of parameters in result array
-                    # It's probably faster to get it by exp_id, but this is fast enough for now, and it's more reliable
-                    bool_array = non_axis_bool_array.copy()
-                    if self.xaxis != self.comboBox_noneChoice: bool_array = np.logical_and(bool_array,self.resultArray[self.xaxis] == jval)
-                    if self.yaxis != self.comboBox_noneChoice: bool_array = np.logical_and(bool_array,self.resultArray[self.yaxis] == ival)
+                        # Draw the image
+                        imageItem = QGraphicsPixmapItem(pc)
+                        imageItem.setOffset(imagePos)
+                        self.scene.addItem(imageItem)
+                    # Draw placeholders where there are no images
+                    else:
+                        rect = QRectF(QPointF(),frameRect.size()*0.5)
+                        rect.moveCenter(frameRect.center())
+                        pen = QPen(QColor(self.imageFrameColor),5)
+                        self.scene.addLine(QLineF(rect.topLeft(),rect.bottomRight()),pen)
+                        self.scene.addLine(QLineF(rect.bottomLeft(),rect.topRight()),pen)
 
-                    # If np.count_nonzero(bool_array) == 0, the result is not in the csv, so don't display anything
-                    if np.count_nonzero(bool_array) > 1:
-                        self.print("Warning: The set of parameters matches multiple experiments.")
-                    elif np.count_nonzero(bool_array) == 1:
-                        # Get corresponding value in row
-                        result_value_ij = self.resultArray[bool_array][self.resultName][0]
-                        # Print the text
-                        resultTextItem = QGraphicsTextItem()
-                        resultTextItem.setFont(QFont("Sans Serif", pointSize=fontSize+self.resultFontRelSize, weight=35*(self.resultFontWeight-1)))
-                        resultTextItem.setDefaultTextColor(QColor(self.resultFontColor))
-                        if self.resultFontBackground:
-                            resultTextItem.setHtml("<div style='background:rgba(255, 255, 255, 100%);'>" + str(result_value_ij) + "</div>")
-                        else:
-                            resultTextItem.setPlainText(str(result_value_ij))
-                        resultTextItem.setPos(imagePos)
-                        textBR = resultTextItem.sceneBoundingRect()
-                        resultTextItem.setPos(imagePos + QPointF(imWidth/2 - textBR.width()/2, imHeight/2 - textBR.height()/2))
-                        # resultTextItem.setPos(imagePos + QPointF(imWidth/2, imHeight/2))
-                        # resultTextItem.setTextWidth(imWidth)
-                        self.scene.addItem(resultTextItem)
+                    # Draw matched pattern if present
+                    if self.matchedPatterns[i,j] != "":
+                        textItem = QGraphicsTextItem()
+                        textItem.setFont(QFont("Sans Serif", pointSize=fontSize+self.resultFontRelSize))
+                        textItem.setPlainText(self.matchedPatterns[i,j])
+                        # textBR = textItem.sceneBoundingRect()
+                        textItem.setPos(imagePos)
+                        self.scene.addItem(textItem)
 
-                # Draw frames
-                if self.imageFrameLineWidth != 0:
-                    self.scene.addRect(frameRect,QPen(QColor(self.imageFrameColor),self.imageFrameLineWidth))
+                    # Draw top labels if X axis is not None
+                    if jval is not None and i == 0:
+                        textItem = QGraphicsTextItem()
+                        textItem.setFont(QFont("Sans Serif", pointSize=fontSize + self.labelRelSize))
+                        textItem.setPlainText(self.xaxis+"= "+str(jval))
+                        textBR = textItem.sceneBoundingRect()
+                        # height/10 is the arbitary spacing that separates labels from images
+                        # Subtract textBR.height() on Y so that the bottom of the text is always imHeight/10 from the image
+                        textItem.setPos(imagePos + QPointF(imWidth/2 - textBR.width()/2, -labelSpacing - textBR.height()))
+                        textItem.setTextWidth(imWidth)
+                        self.scene.addItem(textItem)
+
+                    # Draw left labels if Y axis is not None
+                    if ival is not None and j == 0:
+                        textItem = QGraphicsTextItem()
+                        textItem.setFont(QFont("Sans Serif", pointSize=fontSize + self.labelRelSize))
+                        textItem.setPlainText(self.yaxis+"= "+str(ival))
+                        textItem.setRotation(-90)
+                        textBR = textItem.sceneBoundingRect()
+                        textItem.setPos(imagePos + QPointF(-labelSpacing - textBR.width(), imHeight/2 + textBR.height()/2))
+                        textItem.setTextWidth(imHeight)
+                        self.scene.addItem(textItem)
+
+                    # Draw the result if one is selected
+                    if self.resultName != self.comboBox_noneChoice:
+                        # Get row corresponding to the current set of parameters in result array
+                        # It's probably faster to get it by exp_id, but this is fast enough for now, and it's more reliable
+                        bool_array = non_axis_bool_array.copy()
+                        if self.xaxis != self.comboBox_noneChoice: bool_array = np.logical_and(bool_array,self.resultArray[self.xaxis] == jval)
+                        if self.yaxis != self.comboBox_noneChoice: bool_array = np.logical_and(bool_array,self.resultArray[self.yaxis] == ival)
+
+                        # If np.count_nonzero(bool_array) == 0, the result is not in the csv, so don't display anything
+                        if np.count_nonzero(bool_array) > 1:
+                            self.print("Warning: The set of parameters matches multiple experiments.")
+                        elif np.count_nonzero(bool_array) == 1:
+                            # Get corresponding value in row
+                            result_value_ij = self.resultArray[bool_array][self.resultName][0]
+                            # Print the text
+                            resultTextItem = QGraphicsTextItem()
+                            resultTextItem.setFont(QFont("Sans Serif", pointSize=fontSize+self.resultFontRelSize, weight=35*(self.resultFontWeight-1)))
+                            resultTextItem.setDefaultTextColor(QColor(self.resultFontColor))
+                            if self.resultFontBackground:
+                                resultTextItem.setHtml("<div style='background:rgba(255, 255, 255, 100%);'>" + str(result_value_ij) + "</div>")
+                            else:
+                                resultTextItem.setPlainText(str(result_value_ij))
+                            resultTextItem.setPos(imagePos)
+                            textBR = resultTextItem.sceneBoundingRect()
+                            resultTextItem.setPos(imagePos + QPointF(imWidth/2 - textBR.width()/2, imHeight/2 - textBR.height()/2))
+                            # resultTextItem.setPos(imagePos + QPointF(imWidth/2, imHeight/2))
+                            # resultTextItem.setTextWidth(imWidth)
+                            self.scene.addItem(resultTextItem)
+
+                    # Draw frames
+                    if self.imageFrameLineWidth != 0:
+                        self.scene.addRect(frameRect,QPen(QColor(self.imageFrameColor),self.imageFrameLineWidth))
 
         # Hide the progress bar
         if show_pbar: self.progressBar.hide()
