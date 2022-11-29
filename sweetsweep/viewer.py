@@ -565,7 +565,7 @@ class Ui(QtWidgets.QMainWindow):
         self.resultName = self.comboBox_result.currentText()
 
         # Redraw
-        self.draw_graphics(reload_images=False, resetView=False)
+        self.draw_graphics(reload_images=False, reset_view=False)
         return
 
     def filePattern_changed(self, index=0):
@@ -596,7 +596,7 @@ class Ui(QtWidgets.QMainWindow):
     def crop_changed(self, value):
         # Update the variable
         self.imageCrop = [w.value()/100 for w in self.doubleSpinBox_cropList]
-        self.draw_graphics(reload_images=False, resetView=False)
+        self.draw_graphics(reload_images=False, reset_view=False)
 
     def set_cropLBRT(self, cropLBRT):
         self.imageCrop = cropLBRT
@@ -610,7 +610,7 @@ class Ui(QtWidgets.QMainWindow):
     def spacing_changed(self, value):
         # Update the variable
         self.imageSpacing = [self.spinBox_spacingX.value(),self.spinBox_spacingY.value()]
-        self.draw_graphics(reload_images=False, resetView=False)
+        self.draw_graphics(reload_images=False, reset_view=False)
 
     def getImageCroppingRect(self, pixmap):
         return QRect(int(self.imageCrop[0] * pixmap.width()), int(self.imageCrop[3] * pixmap.height()),
@@ -619,31 +619,31 @@ class Ui(QtWidgets.QMainWindow):
 
     def frameLineWidth_changed(self, value):
         self.imageFrameLineWidth = value
-        self.draw_graphics(reload_images=False, resetView=False)
+        self.draw_graphics(reload_images=False, reset_view=False)
 
     def frameColor_changed(self, text):
         self.imageFrameColor = text
-        self.draw_graphics(reload_images=False, resetView=False)
+        self.draw_graphics(reload_images=False, reset_view=False)
 
     def labelRelSize_changed(self, value):
         self.labelRelSize = value
-        self.draw_graphics(reload_images=False, resetView=False)
+        self.draw_graphics(reload_images=False, reset_view=False)
 
     def resultFontWeight_changed(self, value):
         self.resultFontWeight = value
-        self.draw_graphics(reload_images=False, resetView=False)
+        self.draw_graphics(reload_images=False, reset_view=False)
 
     def resultFontColor_changed(self, text):
         self.resultFontColor = text
-        self.draw_graphics(reload_images=False, resetView=False)
+        self.draw_graphics(reload_images=False, reset_view=False)
 
     def resultFontBackground_changed(self, state):
         self.resultFontBackground = state > 0
-        self.draw_graphics(reload_images=False, resetView=False)
+        self.draw_graphics(reload_images=False, reset_view=False)
 
     def resultFontRelSize_changed(self, value):
         self.resultFontRelSize = value
-        self.draw_graphics(reload_images=False, resetView=False)
+        self.draw_graphics(reload_images=False, reset_view=False)
 
     def read_resultsCSV(self, csv_path):
         with open(csv_path, newline='') as csv_file:
@@ -667,7 +667,7 @@ class Ui(QtWidgets.QMainWindow):
             self.print("Unable to read result file '%s'." % self.resultsCSV)
             self.allResultNames = []
 
-    def draw_graphics(self, reload_images=True, resetView=True):
+    def draw_graphics(self, reload_images=True, reset_view=True):
         # print("Draw!")
         # Clear the scene before drawing
         self.scene.clear()
@@ -913,7 +913,7 @@ class Ui(QtWidgets.QMainWindow):
         self.sceneRect = self.scene.itemsBoundingRect()
         # self.scene.addRect(self.sceneRect)  # Plot the scene rectangle
         # Readjust the view
-        if resetView: self.graphicsView.fitInView(self.sceneRect, Qt.KeepAspectRatio)
+        if reset_view: self.graphicsView.fitInView(self.sceneRect, Qt.KeepAspectRatio)
         # Readjust the scrolling area
         self.scene.setSceneRect(self.scene.itemsBoundingRect())
         # Update show image size
