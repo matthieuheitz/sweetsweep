@@ -266,7 +266,7 @@ class Ui(QtWidgets.QMainWindow):
         self.doubleSpinBox_ImageReduction.valueChanged.connect(self.imageReduction_changed)
         self.plainTextEdit_notes.installEventFilter(self)
         self.pushButton_groupbox_save.pressed.connect(self.groupbox_save_toggled)
-        self.checkBox_result_matrix.stateChanged.connect(self.resultMatrix_checked)
+        self.checkBox_resultMatrix.stateChanged.connect(self.resultMatrix_checked)
 
         # This changes the limit of the current view, ie what we see of the scene through the widget.
         # s = 100
@@ -814,7 +814,7 @@ class Ui(QtWidgets.QMainWindow):
         if show_pbar: self.progressBar.show()
 
         # If display result matrix
-        if self.checkBox_result_matrix.isChecked():
+        if self.checkBox_resultMatrix.isChecked():
             if self.resultName == self.comboBox_noneChoice:
                 self.print("Select a result to plot")
             else:
