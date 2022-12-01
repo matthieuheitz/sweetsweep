@@ -835,8 +835,10 @@ class Ui(QtWidgets.QMainWindow):
                 ax = canvas.axes
                 fig = canvas.figure
                 # Plot the values
-                # sc.axes.plot([0, 1, 2, 3, 4], [10, 1, 20, 3, 40])
-                resultMatrix = self.resultArray[non_axis_bool_array][self.resultName].reshape(nValuesX,nValuesY).T
+                x_reorder = np.argsort(np.argsort(self.fullParamDict[self.xaxis])) if self.xaxis != self.comboBox_noneChoice else ...
+                y_reorder = np.argsort(np.argsort(self.fullParamDict[self.yaxis])) if self.yaxis != self.comboBox_noneChoice else ...
+                result_order_by = [x for x in [self.xaxis, self.yaxis] if x != self.comboBox_noneChoice]
+                resultMatrix = np.sort(self.resultArray[non_axis_bool_array], order=result_order_by)[self.resultName].reshape(nValuesX, nValuesY).T[y_reorder][:,x_reorder]
                 im = ax.matshow(resultMatrix)
                 for i in range(nValuesY):
                     for j in range(nValuesX):
