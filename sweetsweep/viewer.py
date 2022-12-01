@@ -226,6 +226,7 @@ class Ui(QtWidgets.QMainWindow):
         self.resultFontColor = "black"
         self.resultFontRelSize = 0
         self.resultFontBackground = False
+        self.resultStrFormatter = lambda x: str(x)
         self.sceneRect = None
         self.viewRect = None
         self.zoom = 1
@@ -267,6 +268,7 @@ class Ui(QtWidgets.QMainWindow):
         self.plainTextEdit_notes.installEventFilter(self)
         self.pushButton_groupbox_save.pressed.connect(self.groupbox_save_toggled)
         self.checkBox_resultMatrix.stateChanged.connect(self.resultMatrix_checked)
+        self.lineEdit_resultFormat.textChanged.connect(self.resultFormat_changed)
 
         # This changes the limit of the current view, ie what we see of the scene through the widget.
         # s = 100
@@ -576,6 +578,10 @@ class Ui(QtWidgets.QMainWindow):
     def comboBoxResult_changed(self, index):
         self.resultName = self.comboBox_result.currentText()
 
+        # Deal with the result format field
+        if index != 0: self.checkResultFormat()
+        else: self.lineEdit_resultFormat.setStyleSheet("color: black;")
+
         # Redraw
         self.draw_graphics(reload_images=False, reset_view=False)
         return
@@ -656,6 +662,28 @@ class Ui(QtWidgets.QMainWindow):
     def resultFontRelSize_changed(self, value):
         self.resultFontRelSize = value
         self.draw_graphics(reload_images=False, reset_view=False)
+
+    def resultFormat_changed(self, text):
+        if self.resultName != self.comboBox_noneChoice:
+            self.checkResultFormat()
+        self.draw_graphics(reload_images=False, reset_view=False)
+
+    def checkResultFormat(self):
+        result_format = self.lineEdit_resultFormat.text()
+        self.resultStrFormatter = lambda x: str(x)
+        self.lineEdit_resultFormat.setStyleSheet("color: black;")
+        # Check if result format is valid
+        # https://realpython.com/python-formatted-output/#the-format_spec-component
+        if re.match('^{.*}$', result_format):  # Format must start with { and end with }
+            try:
+                # Try to format the result as requested
+                result_format.format(self.resultArray[self.resultName][0])
+                self.resultStrFormatter = lambda s: result_format.format(s)
+            except Exception:
+                self.lineEdit_resultFormat.setStyleSheet("color: red;")
+                pass
+        elif result_format:  # If field is not empty but didn't match
+            self.lineEdit_resultFormat.setStyleSheet("color: red;")
 
     def resultMatrix_checked(self, state):
         self.draw_graphics()
@@ -842,8 +870,8 @@ class Ui(QtWidgets.QMainWindow):
                 im = ax.matshow(resultMatrix)
                 for i in range(nValuesY):
                     for j in range(nValuesX):
-                        c = resultMatrix[i, j]
-                        ax.text(j, i, str(c), va='center', ha='center', c=self.resultFontColor, bbox=text_bbox,
+                        txt = self.resultStrFormatter(resultMatrix[i, j])
+                        ax.text(j, i, txt, va='center', ha='center', c=self.resultFontColor, bbox=text_bbox,
                                 fontsize=10+self.resultFontRelSize/2, fontweight=250*self.resultFontWeight)
                 ax.set_xticks(range(nValuesX))
                 ax.set_yticks(range(nValuesY))
@@ -945,15 +973,15 @@ class Ui(QtWidgets.QMainWindow):
                             self.print("Warning: The set of parameters matches multiple experiments.")
                         elif np.count_nonzero(bool_array) == 1:
                             # Get corresponding value in row
-                            result_value_ij = self.resultArray[bool_array][self.resultName][0]
+                            result_value_ij = self.resultStrFormatter(self.resultArray[bool_array][self.resultName][0])
                             # Print the text
                             resultTextItem = QGraphicsTextItem()
                             resultTextItem.setFont(QFont("Sans Serif", pointSize=fontSize+self.resultFontRelSize, weight=35*(self.resultFontWeight-1)))
                             resultTextItem.setDefaultTextColor(QColor(self.resultFontColor))
                             if self.resultFontBackground:
-                                resultTextItem.setHtml("<div style='background:rgba(255, 255, 255, 100%);'>" + str(result_value_ij) + "</div>")
+                                resultTextItem.setHtml("<div style='background:rgba(255, 255, 255, 100%);'>" + result_value_ij + "</div>")
                             else:
-                                resultTextItem.setPlainText(str(result_value_ij))
+                                resultTextItem.setPlainText(result_value_ij)
                             resultTextItem.setPos(imagePos)
                             textBR = resultTextItem.sceneBoundingRect()
                             resultTextItem.setPos(imagePos + QPointF(imWidth/2 - textBR.width()/2, imHeight/2 - textBR.height()/2))
