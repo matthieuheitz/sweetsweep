@@ -942,7 +942,8 @@ class Ui(QtWidgets.QMainWindow):
                     if jval is not None and i == 0:
                         textItem = QGraphicsTextItem()
                         textItem.setFont(QFont("Sans Serif", pointSize=fontSize + self.labelRelSize))
-                        textItem.setPlainText(self.xaxis+"= "+str(jval))
+                        # textItem.setPlainText(self.xaxis+"= "+str(jval))
+                        textItem.setPlainText(str(jval))
                         textBR = textItem.sceneBoundingRect()
                         # height/10 is the arbitary spacing that separates labels from images
                         # Subtract textBR.height() on Y so that the bottom of the text is always imHeight/10 from the image
@@ -954,7 +955,8 @@ class Ui(QtWidgets.QMainWindow):
                     if ival is not None and j == 0:
                         textItem = QGraphicsTextItem()
                         textItem.setFont(QFont("Sans Serif", pointSize=fontSize + self.labelRelSize))
-                        textItem.setPlainText(self.yaxis+"= "+str(ival))
+                        # textItem.setPlainText(self.yaxis+"= "+str(ival))
+                        textItem.setPlainText(str(ival))
                         textItem.setRotation(-90)
                         textBR = textItem.sceneBoundingRect()
                         textItem.setPos(imagePos + QPointF(-labelSpacing - textBR.width(), imHeight/2 + textBR.height()/2))
@@ -993,6 +995,29 @@ class Ui(QtWidgets.QMainWindow):
                     # Draw frames
                     if self.imageFrameLineWidth != 0:
                         self.scene.addRect(frameRect,QPen(QColor(self.imageFrameColor),self.imageFrameLineWidth))
+
+            # Draw top labels if X axis is not None
+            if xrange[0] is not None:
+                textItem = QGraphicsTextItem()
+                textItem.setFont(QFont("Sans Serif", pointSize=fontSize + self.labelRelSize))
+                textItem.setPlainText(self.xaxis)
+                textBR = textItem.sceneBoundingRect()
+                textPos = QPointF(nValuesX/2 * (imWidth + self.imageSpacing[0]), 0)
+                textItem.setPos(textPos + QPointF(-textBR.width()/2, -4*labelSpacing - textBR.height()))
+                textItem.setTextWidth(imWidth)
+                self.scene.addItem(textItem)
+
+            # Draw left labels if Y axis is not None
+            if yrange[0] is not None:
+                textItem = QGraphicsTextItem()
+                textItem.setFont(QFont("Sans Serif", pointSize=fontSize + self.labelRelSize))
+                textItem.setPlainText(self.yaxis)
+                textItem.setRotation(-90)
+                textBR = textItem.sceneBoundingRect()
+                textPos = QPointF(0, nValuesY/2 * (imHeight + self.imageSpacing[1]))
+                textItem.setPos(textPos + QPointF(-4*labelSpacing - textBR.width(), textBR.height()/2))
+                textItem.setTextWidth(imHeight)
+                self.scene.addItem(textItem)
 
         # Hide the progress bar
         if show_pbar: self.progressBar.hide()
