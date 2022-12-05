@@ -694,7 +694,7 @@ class Ui(QtWidgets.QMainWindow):
             csv_reader = csv.reader(csv_file)
             header = next(csv_reader)
             csv_all = [row for row in csv_reader]
-        csv_dict = {row[0]: row[1:] for row in csv_all}
+        csv_dict = {row[0]: row[1:] for row in csv_all if row}
         # Replace values in redundant experiments
         for row in csv_all:
             src_exp_id = row[1]
