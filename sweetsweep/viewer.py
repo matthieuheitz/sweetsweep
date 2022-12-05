@@ -686,6 +686,7 @@ class Ui(QtWidgets.QMainWindow):
             self.lineEdit_resultFormat.setStyleSheet("color: red;")
 
     def resultMatrix_checked(self, state):
+        self.comboBox_filePattern.setDisabled(state)
         self.draw_graphics()
 
     def read_resultsCSV(self, csv_path):
