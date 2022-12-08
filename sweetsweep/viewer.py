@@ -732,6 +732,10 @@ class Ui(QtWidgets.QMainWindow):
         nValuesX = len(xrange)
         nValuesY = len(yrange)
 
+        # If we only show the result matrix, overwrite reload_images
+        plot_resultMatrix = self.checkBox_resultMatrix.isChecked()
+        if plot_resultMatrix: reload_images = False
+
         if reload_images or self.currentImagePaths is None:
 
             # For when reading files has latency (e.g. mounted folder)
@@ -742,10 +746,10 @@ class Ui(QtWidgets.QMainWindow):
                 # parameters on X or Y axis. If I do, then it shows up. So I have to repaint manually.
                 self.progressBar.repaint()
 
-            t0 = time.time()
+            t_start = time.time()
             alldirs = [os.path.basename(f) for f in os.scandir(self.mainFolder) if f.is_dir()]
-            t1 = time.time()
-            self.prevTimeScandir = t1-t0
+            t_end = time.time()
+            self.prevTimeScandir = t_end-t_start
             self.progressBar.hide()  # Hide even if it wasn't shown
 
             used_dirs = alldirs.copy()
@@ -843,16 +847,14 @@ class Ui(QtWidgets.QMainWindow):
         if show_pbar: self.progressBar.show()
 
         # If display result matrix
-        if self.checkBox_resultMatrix.isChecked():
+        if plot_resultMatrix:
+            # If no result selected
             if self.resultName == self.comboBox_noneChoice:
-                self.print("Select a result to plot")
+                self.print("ERROR: Select a result to plot")
+            # If the selected result is not a number (e.g. a str), we can't plot a matrix for it
+            elif not np.issubdtype(self.resultArray.dtype[self.resultName],np.number):
+                self.print("ERROR: Cannot plot matrix for non-numeric data.")
             else:
-                # Debug
-                # matplotlib.use('Qt5Agg')
-                # import matplotlib.pyplot as plt
-                # fig = plt.figure()
-                # ax = fig.add_subplot(111)
-
                 # Check color
                 if not matplotlib.colors.is_color_like(self.resultFontColor):
                     self.resultFontColor = "black"
@@ -863,17 +865,39 @@ class Ui(QtWidgets.QMainWindow):
                 canvas = MplCanvas(self, width=7, height=7, dpi=500)
                 ax = canvas.axes
                 fig = canvas.figure
-                # Plot the values
-                x_reorder = np.argsort(np.argsort(self.fullParamDict[self.xaxis])) if self.xaxis != self.comboBox_noneChoice else ...
-                y_reorder = np.argsort(np.argsort(self.fullParamDict[self.yaxis])) if self.yaxis != self.comboBox_noneChoice else ...
-                result_order_by = [x for x in [self.xaxis, self.yaxis] if x != self.comboBox_noneChoice]
-                resultMatrix = np.sort(self.resultArray[non_axis_bool_array], order=result_order_by)[self.resultName].reshape(nValuesX, nValuesY).T[y_reorder][:,x_reorder]
-                im = ax.matshow(resultMatrix)
-                for i in range(nValuesY):
-                    for j in range(nValuesX):
-                        txt = self.resultStrFormatter(resultMatrix[i, j])
+
+                # Create matrix of results
+                # If some values are missing (e.g. sweep not finished)
+                resultMatrix_dtype = type(self.resultArray[0][self.resultName])
+                if np.sum(non_axis_bool_array) < nValuesX * nValuesY:
+                    self.print("WARNING: Missing some result values.")
+                    # Changing array to float to be able to replace missing values with NaNs
+                    resultMatrix_dtype = float
+                resultMatrix = np.zeros((nValuesY, nValuesX), dtype=resultMatrix_dtype)
+
+                # Plot text and fill resultMatrix
+                for i, ival in enumerate(yrange):
+                    for j, jval in enumerate(xrange):
+                        # Get corresponding result
+                        bool_array = non_axis_bool_array.copy()
+                        if self.xaxis != self.comboBox_noneChoice: bool_array = np.logical_and(bool_array,self.resultArray[self.xaxis] == jval)
+                        if self.yaxis != self.comboBox_noneChoice: bool_array = np.logical_and(bool_array,self.resultArray[self.yaxis] == ival)
+
+                        txt = None
+                        if np.count_nonzero(bool_array) == 0: # the result is not in the csv, so don't display anything
+                            resultMatrix[i, j] = np.nan
+                            txt = ""
+                        elif np.count_nonzero(bool_array) > 1:
+                            self.print("Warning: The set of parameters matches multiple experiments.")
+                        elif np.count_nonzero(bool_array) == 1:
+                            # Get corresponding value in row
+                            resultMatrix[i, j] = self.resultArray[bool_array][self.resultName][0]
+                            txt = self.resultStrFormatter(resultMatrix[i, j])
+                        # Plot text
                         ax.text(j, i, txt, va='center', ha='center', c=self.resultFontColor, bbox=text_bbox,
                                 fontsize=10+self.resultFontRelSize/2, fontweight=250*self.resultFontWeight)
+                # Plot matrix and change axes and labels
+                im = ax.matshow(resultMatrix)
                 ax.set_xticks(range(nValuesX))
                 ax.set_yticks(range(nValuesY))
                 ax.set_xticklabels(xrange)
