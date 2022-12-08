@@ -697,7 +697,7 @@ class Ui(QtWidgets.QMainWindow):
         csv_dict = {row[0]: row[1:] for row in csv_all if row}
         # Replace values in redundant experiments
         for row in csv_all:
-            src_exp_id = row[1]
+            src_exp_id = row[1] if "src_exp_id" in row else "-1"
             row_prefix_len = len(row)
             if src_exp_id != '-1':
                 row += csv_dict[src_exp_id][row_prefix_len - 1:]
