@@ -870,8 +870,6 @@ class Ui(QtWidgets.QMainWindow):
         sceneSize = QSize(nValuesX*(imWidth+self.imageSpacing[0]), nValuesY*(imHeight+self.imageSpacing[1]))
         maxViewSize = max(viewSize.width(), viewSize.height())
         maxSceneSize = max(sceneSize.width(), sceneSize.height())
-        print(sceneSize)
-        print(viewSize)
         # print("Image size:",sceneSize)
         # print("View size:",self.graphicsView.size())
         # print("Point size:",txt.font().pointSize())
@@ -977,8 +975,8 @@ class Ui(QtWidgets.QMainWindow):
                         # Change axes, ticks and labels
                         xticklabels = xrange
                         yticklabels = yrange
-                        xlabel = self.xaxis
-                        ylabel = self.yaxis
+                        xlabel = self.x2axis + "=" + str(j2val) + "\n" + self.xaxis if self.x2axis != self.comboBox_noneChoice else self.xaxis
+                        ylabel = self.y2axis + "=" + str(i2val) + "\n" + self.yaxis if self.y2axis != self.comboBox_noneChoice else self.yaxis
                         if i2 != 0:
                             ax.tick_params(axis='x', top=False)  # Only top ticks for first row
                             xticklabels = []
