@@ -233,6 +233,25 @@ class Ui(QtWidgets.QMainWindow):
         self.pushButton_groupbox_save.setStyleSheet('text-align: left;')
         self.prevTimeScandir = 1
 
+        # Add X2 axis and Y2 axis
+        self.X2_label = QLabel("X2 Axis")
+        self.Y2_label = QLabel("Y2 Axis")
+        self.comboBox_x2axis = MyQComboBox()
+        self.comboBox_y2axis = MyQComboBox()
+        self.x2axis = self.comboBox_noneChoice
+        self.y2axis = self.comboBox_noneChoice
+        self.comboBox_x2axis.addItem(self.x2axis)
+        self.comboBox_y2axis.addItem(self.y2axis)
+        self.displayAxisLabelLayout.addWidget(self.X2_label)
+        self.displayAxisLabelLayout.addWidget(self.Y2_label)
+        self.displayAxisLayout.addWidget(self.comboBox_x2axis)
+        self.displayAxisLayout.addWidget(self.comboBox_y2axis)
+        # Show/hide X2 and Y2 axes
+        self.X2_label.setVisible(False)
+        self.comboBox_x2axis.setVisible(False)
+        self.Y2_label.setVisible(False)
+        self.comboBox_y2axis.setVisible(False)
+
         self.scene = QtWidgets.QGraphicsScene()
         # self.graphicsView.scale(1,-1) # Flip the y axis, but it also flips images
         self.graphicsView.setScene(self.scene)
@@ -251,6 +270,8 @@ class Ui(QtWidgets.QMainWindow):
         self.pushButton_clearLog.pressed.connect(self.log_clear)
         self.comboBox_xaxis.currentIndexChanged.connect(self.comboBoxAxis_changed)
         self.comboBox_yaxis.currentIndexChanged.connect(self.comboBoxAxis_changed)
+        self.comboBox_x2axis.currentIndexChanged.connect(self.comboBoxAxis_changed)
+        self.comboBox_y2axis.currentIndexChanged.connect(self.comboBoxAxis_changed)
         self.comboBox_result.currentIndexChanged.connect(self.comboBoxResult_changed)
         [w.valueChanged.connect(self.crop_changed) for w in self.doubleSpinBox_cropList]
         self.spinBox_spacingX.valueChanged.connect(self.spacing_changed)
@@ -439,18 +460,26 @@ class Ui(QtWidgets.QMainWindow):
         # Reset comboboxes
         self.comboBox_xaxis.blockSignals(True)
         self.comboBox_yaxis.blockSignals(True)
+        self.comboBox_x2axis.blockSignals(True)
+        self.comboBox_y2axis.blockSignals(True)
         self.comboBox_result.blockSignals(True)
         self.comboBox_filePattern.blockSignals(True)
         self.comboBox_xaxis.clear()
         self.comboBox_yaxis.clear()
+        self.comboBox_x2axis.clear()
+        self.comboBox_y2axis.clear()
         self.comboBox_result.clear()
         self.comboBox_filePattern.clear()
         self.comboBox_xaxis.addItem(self.comboBox_noneChoice)
         self.comboBox_yaxis.addItem(self.comboBox_noneChoice)
+        self.comboBox_x2axis.addItem(self.comboBox_noneChoice)
+        self.comboBox_y2axis.addItem(self.comboBox_noneChoice)
         self.comboBox_result.addItem(self.comboBox_noneChoice)
         self.comboBox_filePattern.addItem(self.comboBox_noneChoice)
         self.comboBox_xaxis.blockSignals(False)
         self.comboBox_yaxis.blockSignals(False)
+        self.comboBox_x2axis.blockSignals(False)
+        self.comboBox_y2axis.blockSignals(False)
         self.comboBox_result.blockSignals(False)
         self.comboBox_filePattern.blockSignals(False)
         self.xaxis = self.comboBox_noneChoice
@@ -516,6 +545,8 @@ class Ui(QtWidgets.QMainWindow):
         # Populate the axis comboboxes
         self.comboBox_xaxis.addItems(self.allParamNames)
         self.comboBox_yaxis.addItems(self.allParamNames)
+        self.comboBox_x2axis.addItems(self.allParamNames)
+        self.comboBox_y2axis.addItems(self.allParamNames)
         # Populate result combobox if a csv was read
         if self.resultArray is not None:
             self.comboBox_result.addItems(["exp_id",] + self.allResultNames)
@@ -550,27 +581,35 @@ class Ui(QtWidgets.QMainWindow):
         #  Else if yaxis has change
         #   Vice versa
 
-        def update_xyComboBox(combo_current, prev_param, combo_other):
+        def update_axisComboBox(combo_current, prev_param, combo_other):
             # If the new selection is not None, hide it where necessary
             param = combo_current.currentText()
             if param != self.comboBox_noneChoice:
                 param_index = self.allParamNames.index(param)
                 self.paramDict[param] = self.fullParamDict[param]
                 self.paramControlWidgetList[param_index].setEnabled(False)
-                combo_other.view().setRowHidden(param_index+1, True)
+                for other in combo_other:
+                    other.view().setRowHidden(param_index+1, True)
             # If the previous selection was not None, restore it where necessary
             if prev_param != self.comboBox_noneChoice:
                 param_index = self.allParamNames.index(prev_param)
                 self.paramDict[prev_param] = [self.fullParamDict[prev_param][self.paramControlWidgetList[param_index].currentIndex()]]  # Restore to previous value
                 self.paramControlWidgetList[param_index].setEnabled(True)
-                combo_other.view().setRowHidden(param_index+1, False)
+                for other in combo_other:
+                    other.view().setRowHidden(param_index+1, False)
 
         if self.sender() is self.comboBox_xaxis:
-            update_xyComboBox(self.comboBox_xaxis, self.xaxis, self.comboBox_yaxis)
+            update_axisComboBox(self.comboBox_xaxis, self.xaxis, [self.comboBox_yaxis,self.comboBox_x2axis,self.comboBox_y2axis])
             self.xaxis = self.comboBox_xaxis.currentText()
         elif self.sender() is self.comboBox_yaxis:
-            update_xyComboBox(self.comboBox_yaxis, self.yaxis, self.comboBox_xaxis)
+            update_axisComboBox(self.comboBox_yaxis, self.yaxis, [self.comboBox_xaxis,self.comboBox_x2axis,self.comboBox_y2axis])
             self.yaxis = self.comboBox_yaxis.currentText()
+        elif self.sender() is self.comboBox_x2axis:
+            update_axisComboBox(self.comboBox_x2axis, self.x2axis, [self.comboBox_xaxis,self.comboBox_yaxis,self.comboBox_y2axis])
+            self.x2axis = self.comboBox_x2axis.currentText()
+        elif self.sender() is self.comboBox_y2axis:
+            update_axisComboBox(self.comboBox_y2axis, self.y2axis, [self.comboBox_xaxis,self.comboBox_yaxis,self.comboBox_x2axis])
+            self.y2axis = self.comboBox_y2axis.currentText()
 
         # Redraw
         self.draw_graphics()
@@ -687,6 +726,12 @@ class Ui(QtWidgets.QMainWindow):
 
     def resultMatrix_checked(self, state):
         self.comboBox_filePattern.setDisabled(state)
+        # Show/hide X2 and Y2 axes
+        self.X2_label.setVisible(state)
+        self.comboBox_x2axis.setVisible(state)
+        self.Y2_label.setVisible(state)
+        self.comboBox_y2axis.setVisible(state)
+
         self.draw_graphics()
 
     def read_resultsCSV(self, csv_path):
@@ -729,8 +774,12 @@ class Ui(QtWidgets.QMainWindow):
         # Get number of images on each axis
         xrange = self.paramDict[self.xaxis] if self.xaxis != self.comboBox_noneChoice else [None]
         yrange = self.paramDict[self.yaxis] if self.yaxis != self.comboBox_noneChoice else [None]
+        x2range = self.paramDict[self.x2axis] if self.x2axis != self.comboBox_noneChoice else [None]
+        y2range = self.paramDict[self.y2axis] if self.y2axis != self.comboBox_noneChoice else [None]
         nValuesX = len(xrange)
         nValuesY = len(yrange)
+        nValuesX2 = len(x2range)
+        nValuesY2 = len(y2range)
 
         # If we only show the result matrix, overwrite reload_images
         plot_resultMatrix = self.checkBox_resultMatrix.isChecked()
@@ -821,6 +870,8 @@ class Ui(QtWidgets.QMainWindow):
         sceneSize = QSize(nValuesX*(imWidth+self.imageSpacing[0]), nValuesY*(imHeight+self.imageSpacing[1]))
         maxViewSize = max(viewSize.width(), viewSize.height())
         maxSceneSize = max(sceneSize.width(), sceneSize.height())
+        print(sceneSize)
+        print(viewSize)
         # print("Image size:",sceneSize)
         # print("View size:",self.graphicsView.size())
         # print("Point size:",txt.font().pointSize())
@@ -839,7 +890,9 @@ class Ui(QtWidgets.QMainWindow):
         if self.resultName != self.comboBox_noneChoice:
             # Precompute bool array that allows to find results values for a given set of parameters,
             # but for parameters that are neither in x or y axis.
-            non_axis_params = [name for name in self.allParamNames if name not in [self.xaxis, self.yaxis]]
+            axis_list = [self.xaxis, self.yaxis]
+            if plot_resultMatrix: axis_list += [self.x2axis, self.y2axis]
+            non_axis_params = [name for name in self.allParamNames if name not in axis_list]
             non_axis_bool_array = np.logical_and.reduce([self.resultArray[p] == self.paramDict[p][0] for p in non_axis_params])
 
         # Show a progress bar
@@ -862,9 +915,25 @@ class Ui(QtWidgets.QMainWindow):
                 text_bbox = {"facecolor": 'white', "linewidth": 0, "pad": 1} if self.resultFontBackground else None
 
                 # Create the figure
-                canvas = MplCanvas(self, width=7, height=7, dpi=500)
-                ax = canvas.axes
+                # canvas = MplCanvas(self, width=7*np.cbrt(nValuesX2), height=7*np.cbrt(nValuesY2), dpi=500)
+                canvas = MplCanvas(self, width=nValuesX*nValuesX2, height=nValuesY*nValuesY2, dpi=500)
+                # canvas = MplCanvas(self, width=7, height=7, dpi=500)
+                # ax = canvas.axes
+                canvas.axes.set_axis_off()
                 fig = canvas.figure
+
+                # Draw a border around the figure.
+                # fig.patch.set_linewidth(10)
+                # fig.patch.set_edgecolor('blue')
+                # print(canvas.get_width_height())
+
+                # # Only for subplots
+                # matplotlib.rcParams["axes.edgecolor"] = "blue"
+                # matplotlib.rcParams["axes.linewidth"] = 3
+
+                rcFontSize = 4 + 3*max(nValuesX2, nValuesY2) + self.labelRelSize
+                font = {'size': rcFontSize} # 'weight': 'bold',
+                matplotlib.rc('font', **font)
 
                 # Create matrix of results
                 # If some values are missing (e.g. sweep not finished)
@@ -875,38 +944,73 @@ class Ui(QtWidgets.QMainWindow):
                     resultMatrix_dtype = float
                 resultMatrix = np.zeros((nValuesY, nValuesX), dtype=resultMatrix_dtype)
 
-                # Plot text and fill resultMatrix
-                for i, ival in enumerate(yrange):
-                    for j, jval in enumerate(xrange):
-                        # Get corresponding result
-                        bool_array = non_axis_bool_array.copy()
-                        if self.xaxis != self.comboBox_noneChoice: bool_array = np.logical_and(bool_array,self.resultArray[self.xaxis] == jval)
-                        if self.yaxis != self.comboBox_noneChoice: bool_array = np.logical_and(bool_array,self.resultArray[self.yaxis] == ival)
+                # Do subplots if necessary
+                for i2, i2val in enumerate(y2range):
+                    for j2, j2val in enumerate(x2range):
+                        ax = fig.add_subplot(nValuesY2,nValuesX2,i2*nValuesX2+j2+1)
 
-                        txt = None
-                        if np.count_nonzero(bool_array) == 0: # the result is not in the csv, so don't display anything
-                            resultMatrix[i, j] = np.nan
-                            txt = ""
-                        elif np.count_nonzero(bool_array) > 1:
-                            self.print("Warning: The set of parameters matches multiple experiments.")
-                        elif np.count_nonzero(bool_array) == 1:
-                            # Get corresponding value in row
-                            resultMatrix[i, j] = self.resultArray[bool_array][self.resultName][0]
-                            txt = self.resultStrFormatter(resultMatrix[i, j])
-                        # Plot text
-                        ax.text(j, i, txt, va='center', ha='center', c=self.resultFontColor, bbox=text_bbox,
-                                fontsize=10+self.resultFontRelSize/2, fontweight=250*self.resultFontWeight)
-                # Plot matrix and change axes and labels
-                im = ax.matshow(resultMatrix)
-                ax.set_xticks(range(nValuesX))
-                ax.set_yticks(range(nValuesY))
-                ax.set_xticklabels(xrange)
-                ax.set_yticklabels(yrange)
-                ax.xaxis.set_label_position('top')
-                if self.xaxis != self.comboBox_noneChoice: ax.set_xlabel(self.xaxis)
-                if self.yaxis != self.comboBox_noneChoice: ax.set_ylabel(self.yaxis)
-                fig.tight_layout()
-                # fig.colorbar(im)  # Not necessary since we plot the exact values
+                        # Plot text and fill resultMatrix
+                        for i, ival in enumerate(yrange):
+                            for j, jval in enumerate(xrange):
+                                # Get corresponding result
+                                bool_array = non_axis_bool_array.copy()
+                                if self.xaxis != self.comboBox_noneChoice: bool_array = np.logical_and(bool_array,self.resultArray[self.xaxis] == jval)
+                                if self.yaxis != self.comboBox_noneChoice: bool_array = np.logical_and(bool_array,self.resultArray[self.yaxis] == ival)
+                                if self.x2axis != self.comboBox_noneChoice: bool_array = np.logical_and(bool_array,self.resultArray[self.x2axis] == j2val)
+                                if self.y2axis != self.comboBox_noneChoice: bool_array = np.logical_and(bool_array,self.resultArray[self.y2axis] == i2val)
+
+                                txt = None
+                                if np.count_nonzero(bool_array) == 0: # the result is not in the csv, so don't display anything
+                                    resultMatrix[i, j] = np.nan
+                                    txt = ""
+                                elif np.count_nonzero(bool_array) > 1:
+                                    self.print("Warning: The set of parameters matches multiple experiments.")
+                                elif np.count_nonzero(bool_array) == 1:
+                                    # Get corresponding value in row
+                                    resultMatrix[i, j] = self.resultArray[bool_array][self.resultName][0]
+                                    txt = self.resultStrFormatter(resultMatrix[i, j])
+                                # Plot text
+                                ax.text(j, i, txt, va='center', ha='center', c=self.resultFontColor, bbox=text_bbox,
+                                        fontsize=10+self.resultFontRelSize/2, fontweight=250*self.resultFontWeight)
+                        # Plot matrix
+                        im = ax.matshow(resultMatrix)
+                        # Change axes, ticks and labels
+                        xticklabels = xrange
+                        yticklabels = yrange
+                        xlabel = self.xaxis
+                        ylabel = self.yaxis
+                        if i2 != 0:
+                            ax.tick_params(axis='x', top=False)  # Only top ticks for first row
+                            xticklabels = []
+                            xlabel = ""
+                        if j2 != 0:
+                            ax.tick_params(axis='y', left=False)  # Only left ticks for first column
+                            yticklabels = []
+                            ylabel = ""
+                        ax.set_xticks(range(nValuesX))
+                        ax.set_yticks(range(nValuesY))
+                        ax.set_xticklabels(xticklabels)
+                        ax.set_yticklabels(yticklabels)
+                        ax.xaxis.set_label_position('top')
+                        ax.tick_params(axis='x', bottom=False)  # Remove all bottom ticks
+                        if self.xaxis != self.comboBox_noneChoice: ax.set_xlabel(xlabel)
+                        if self.yaxis != self.comboBox_noneChoice: ax.set_ylabel(ylabel)
+
+                        # Tighten everything
+                        fig.tight_layout()
+                        # fig.colorbar(im)  # Not necessary since we plot the exact values
+
+                # # TODO: To get those right, start in a new python, make up some data, and plot it like you want it.
+                # # Add suplabels
+                # if self.x2axis != self.comboBox_noneChoice:
+                #     # fig.supxlabel(self.x2axis)
+                #     fig.text(x=0.5,y=0,s=self.x2axis)
+                #     [fig.text(x=(j+1)/(nValuesX2+1), y=0, s=val) for j, val in enumerate(x2range)]
+                #     # fig.text(x=0.5,y=0.99,s=self.x2axis)
+                # if self.y2axis != self.comboBox_noneChoice:
+                #     # fig.supylabel(self.y2axis)
+                #     fig.text(x=-len(self.y2axis)/100,y=0.5,s=self.y2axis, ha="right")
+                #     [fig.text(x=0, y=(i+1)/(nValuesY2+1), s=val) for i, val in enumerate(y2range)]
 
                 # # Create toolbar, passing canvas as first parament, parent (self, the MainWindow) as second.
                 # toolbar = NavigationToolbar(canvas, self)
