@@ -30,6 +30,10 @@ from matplotlib.figure import Figure
 #  - PDF support?
 #  - Make the Size and Notes group boxes collapsible
 #  - Add a mode to plot scalar results with up to varying parameters (using matplotlib)
+#  - Integrate boilerplate code of non-swept parameters in the module
+#  - In the Save part, above the path field, add one checkbox per parameter that adds/removes its value to the end
+#    of the filename, no need to rewrite the parameter names next to the checkboxes, a title and tiptools are enough.
+#    Also, an option to toggle the title would be nice as well
 
 
 # Because I use a "trick" to hide items of a QComboBox through its QListView,
@@ -104,7 +108,7 @@ QPointF.__iter__ = lambda s: iter([s.x(),s.y()])
 class MplCanvas(FigureCanvasQTAgg):
     def __init__(self, parent=None, width=5, height=4, dpi=100):
         fig = Figure(figsize=(width, height), dpi=dpi)
-        self.axes = fig.add_subplot(111)
+        # self.axes = fig.add_subplot(111)
         super(MplCanvas, self).__init__(fig)
 
 
@@ -232,6 +236,7 @@ class Ui(QtWidgets.QMainWindow):
         self.zoom = 1
         self.pushButton_groupbox_save.setStyleSheet('text-align: left;')
         self.prevTimeScandir = 1
+        self.resultMatrixCmap = "viridis"
 
         # Add X2 axis and Y2 axis
         self.X2_label = QLabel("X2 Axis")
@@ -246,11 +251,16 @@ class Ui(QtWidgets.QMainWindow):
         self.displayAxisLabelLayout.addWidget(self.Y2_label)
         self.displayAxisLayout.addWidget(self.comboBox_x2axis)
         self.displayAxisLayout.addWidget(self.comboBox_y2axis)
-        # Show/hide X2 and Y2 axes
+        # Show matrix plot widgets
         self.X2_label.setVisible(False)
         self.comboBox_x2axis.setVisible(False)
         self.Y2_label.setVisible(False)
         self.comboBox_y2axis.setVisible(False)
+
+        self.horizontalWidget_cmap.setVisible(False)
+        self.checkBox_uniqueCmap.setVisible(False)
+        self.label_cmap.setVisible(False)
+        self.lineEdit_cmap.setText(self.resultMatrixCmap)
 
         self.scene = QtWidgets.QGraphicsScene()
         # self.graphicsView.scale(1,-1) # Flip the y axis, but it also flips images
@@ -290,6 +300,8 @@ class Ui(QtWidgets.QMainWindow):
         self.pushButton_groupbox_save.pressed.connect(self.groupbox_save_toggled)
         self.checkBox_resultMatrix.stateChanged.connect(self.resultMatrix_checked)
         self.lineEdit_resultFormat.textChanged.connect(self.resultFormat_changed)
+        self.checkBox_uniqueCmap.stateChanged.connect(self.uniqueCmap_checked)
+        self.lineEdit_cmap.textChanged.connect(self.cmap_changed)
 
         # This changes the limit of the current view, ie what we see of the scene through the widget.
         # s = 100
@@ -611,6 +623,12 @@ class Ui(QtWidgets.QMainWindow):
             update_axisComboBox(self.comboBox_y2axis, self.y2axis, [self.comboBox_xaxis,self.comboBox_yaxis,self.comboBox_x2axis])
             self.y2axis = self.comboBox_y2axis.currentText()
 
+        # Unique colormap checkbox
+        if self.x2axis == self.y2axis == self.comboBox_noneChoice:
+            self.checkBox_uniqueCmap.hide()
+        else:
+            self.checkBox_uniqueCmap.show()
+
         # Redraw
         self.draw_graphics()
 
@@ -731,8 +749,22 @@ class Ui(QtWidgets.QMainWindow):
         self.comboBox_x2axis.setVisible(state)
         self.Y2_label.setVisible(state)
         self.comboBox_y2axis.setVisible(state)
-
+        self.label_cmap.setVisible(state)
+        self.horizontalWidget_cmap.setVisible(state)
         self.draw_graphics()
+
+    def uniqueCmap_checked(self, state):
+        self.draw_graphics()
+
+    def cmap_changed(self, txt):
+        try:
+            matplotlib.cm.get_cmap(txt)
+            self.resultMatrixCmap = txt
+            self.lineEdit_cmap.setStyleSheet("color: black;")
+            self.draw_graphics()
+        except Exception:
+            self.lineEdit_cmap.setStyleSheet("color: red;")
+            pass
 
     def read_resultsCSV(self, csv_path):
         with open(csv_path, newline='') as csv_file:
@@ -917,7 +949,6 @@ class Ui(QtWidgets.QMainWindow):
                 canvas = MplCanvas(self, width=nValuesX*nValuesX2, height=nValuesY*nValuesY2, dpi=500)
                 # canvas = MplCanvas(self, width=7, height=7, dpi=500)
                 # ax = canvas.axes
-                canvas.axes.set_axis_off()
                 fig = canvas.figure
 
                 # Draw a border around the figure.
@@ -941,6 +972,11 @@ class Ui(QtWidgets.QMainWindow):
                     # Changing array to float to be able to replace missing values with NaNs
                     resultMatrix_dtype = float
                 resultMatrix = np.zeros((nValuesY, nValuesX), dtype=resultMatrix_dtype)
+
+                vmin = vmax = None
+                if self.checkBox_uniqueCmap.isChecked():
+                    vmin = self.resultArray[non_axis_bool_array][self.resultName].min()
+                    vmax = self.resultArray[non_axis_bool_array][self.resultName].max()
 
                 # Do subplots if necessary
                 for i2, i2val in enumerate(y2range):
@@ -971,7 +1007,7 @@ class Ui(QtWidgets.QMainWindow):
                                 ax.text(j, i, txt, va='center', ha='center', c=self.resultFontColor, bbox=text_bbox,
                                         fontsize=10+self.resultFontRelSize/2, fontweight=250*self.resultFontWeight)
                         # Plot matrix
-                        im = ax.matshow(resultMatrix)
+                        im = ax.matshow(resultMatrix, cmap=self.resultMatrixCmap, vmin=vmin, vmax=vmax)
                         # Change axes, ticks and labels
                         xticklabels = xrange
                         yticklabels = yrange
