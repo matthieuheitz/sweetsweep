@@ -4,6 +4,7 @@ import os
 import time
 import csv
 import io
+import sys
 
 
 # This function performs a parameter sweep.
@@ -36,6 +37,9 @@ import io
 #               Values must be between 0 and the total number of experiments.
 def parameter_sweep(param_dict, experiment_func, sweep_dir, start_index=0, result_csv_filename="", specific_dict=None,
                     skip_exps=None, only_exp_id=None):
+
+    # Logger that duplicates terminal output to file
+    logger = Logger(os.path.join(sweep_dir,"output.txt"))
 
     if not param_dict:
         print("The parameter dictionary is empty. Nothing to do.")
@@ -139,6 +143,27 @@ def parameter_sweep(param_dict, experiment_func, sweep_dir, start_index=0, resul
     t0 = time.time()
     recursive_call(start_index, current_dict, 0)
     print("Total time of all experiments:",time.time()-t0)
+
+
+# Logger that duplicates output to terminal and to file
+# Not portable on Windows though...
+class Logger(object):
+
+    def __init__(self,logfile):
+        # import warnings
+        # warnings.filterwarnings("default")
+
+        # Works but we loose colors in the terminal
+        import subprocess
+        self.tee = subprocess.Popen(["tee", logfile], stdin=subprocess.PIPE)
+        os.dup2(self.tee.stdin.fileno(), sys.stdout.fileno())
+        os.dup2(self.tee.stdin.fileno(), sys.stderr.fileno())
+
+    def __del__(self):
+        self.tee.stdin.close()
+        sys.stdout.close()
+        sys.stderr.close()
+
 
 
 # Write results of one experiment in the CSV (one single line)
