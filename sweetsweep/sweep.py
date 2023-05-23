@@ -249,7 +249,7 @@ def get_num_exp(sweep_dict):
 def build_dir_name(n_exp, exp_id, current_dict):
     exp_dir = ("exp_%0" + str(len(str(n_exp))) + "d_") % exp_id
     for k, v in current_dict.items():
-        exp_dir += "_" + k + str(v)
+        exp_dir += "_" + k + (v if isinstance(v,str) else "%g"%v)
     return exp_dir
 
 
