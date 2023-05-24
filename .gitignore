@@ -9,3 +9,6 @@ dist/
 
 # Local development
 *.egg-info/
+
+# Sweep folders
+my_sweep*/

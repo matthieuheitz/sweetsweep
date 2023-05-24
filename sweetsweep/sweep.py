@@ -8,6 +8,8 @@ import sys
 
 from .common import *
 
+# TODO: Make a class instead of just functions, it will make passing arguments internally easier.
+
 # This function performs a parameter sweep.
 # It calls `experiment_func` with all combinations of possible parameter values listed in `param_dict`.
 # - param_dict: `dict` where each (key,value) is respectively:
