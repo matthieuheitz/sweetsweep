@@ -928,7 +928,10 @@ class Ui(QtWidgets.QMainWindow):
             axis_list = [self.xaxis, self.yaxis]
             if plot_resultMatrix: axis_list += [self.x2axis, self.y2axis]
             non_axis_params = [name for name in self.allParamNames if name not in axis_list]
-            non_axis_bool_array = np.logical_and.reduce([self.resultArray[p] == self.paramDict[p][0] for p in non_axis_params])
+            if len(non_axis_params) == 0:
+                non_axis_bool_array = np.ones(self.resultArray.shape,dtype=bool)
+            else:
+                non_axis_bool_array = np.logical_and.reduce([self.resultArray[p] == self.paramDict[p][0] for p in non_axis_params])
 
         # Show a progress bar
         show_pbar = nValuesX*nValuesY > 1 and reload_images
