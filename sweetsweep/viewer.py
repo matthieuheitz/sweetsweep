@@ -23,6 +23,11 @@ matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 
+if __name__ == "__main__":
+    from common import *
+else:
+    from .common import *
+
 # TODO
 #  - Prevent users from loading sweep file (and result file) if mainfolder is not valid (grey/hide widgets out?)
 #  - Add automatic file naming when saving
@@ -572,7 +577,7 @@ class Ui(QtWidgets.QMainWindow):
             if self.paramControlType == "combobox":
                 textWidget = QLabel(param)
                 controlWidget = QComboBox()
-                controlWidget.addItems([str(v) for v in values])
+                controlWidget.addItems([val2str(v) for v in values])
             else:
                 print("Not implemented")
             self.paramControlWidgetList.append(controlWidget)
@@ -837,7 +842,7 @@ class Ui(QtWidgets.QMainWindow):
             # Find dirs that match all single parameters
             for param, value in self.paramDict.items():
                 if len(value) == 1:
-                    used_dirs = [d for d in used_dirs if re.search("_"+param+str(value[0]).replace('.','\.')+"(_|$)", d)]
+                    used_dirs = [d for d in used_dirs if re.search(re.escape("_"+param+val2str(value[0]))+"(_|$)", d)]
             self.currentImagePaths = np.full((nValuesY,nValuesX), "", dtype=object)
             self.currentImages = np.full((nValuesY, nValuesX), None, dtype=object)
             self.matchedPatterns = np.full((nValuesY, nValuesX),"",dtype=object)
@@ -845,8 +850,8 @@ class Ui(QtWidgets.QMainWindow):
                 for j, jval in enumerate(xrange):
                     # Find the correct folder
                     dirs = used_dirs.copy()
-                    if ival is not None: dirs = [d for d in dirs if re.search(self.yaxis+str(ival).replace('.','\.')+"(_|$)", d)]
-                    if jval is not None: dirs = [d for d in dirs if re.search(self.xaxis+str(jval).replace('.','\.')+"(_|$)", d)]
+                    if ival is not None: dirs = [d for d in dirs if re.search(re.escape(self.yaxis+val2str(ival))+"(_|$)", d)]
+                    if jval is not None: dirs = [d for d in dirs if re.search(re.escape(self.xaxis+val2str(jval))+"(_|$)", d)]
                     if len(dirs) == 0: self.print("Error: no folder matches the set of parameters"); continue
                     if len(dirs) > 1: self.print("Error: multiple folders match the set of parameters:", *dirs); continue
                     currentDir = dirs[0]
@@ -1011,8 +1016,8 @@ class Ui(QtWidgets.QMainWindow):
                         # Change axes, ticks and labels
                         xticklabels = xrange
                         yticklabels = yrange
-                        xlabel = self.x2axis + "=" + str(j2val) + "\n" + self.xaxis if self.x2axis != self.comboBox_noneChoice else self.xaxis
-                        ylabel = self.y2axis + "=" + str(i2val) + "\n" + self.yaxis if self.y2axis != self.comboBox_noneChoice else self.yaxis
+                        xlabel = self.x2axis + "=" + val2str(j2val) + "\n" + self.xaxis if self.x2axis != self.comboBox_noneChoice else self.xaxis
+                        ylabel = self.y2axis + "=" + val2str(i2val) + "\n" + self.yaxis if self.y2axis != self.comboBox_noneChoice else self.yaxis
                         if i2 != 0:
                             ax.tick_params(axis='x', top=False)  # Only top ticks for first row
                             xticklabels = []
@@ -1104,8 +1109,8 @@ class Ui(QtWidgets.QMainWindow):
                     if jval is not None and i == 0:
                         textItem = QGraphicsTextItem()
                         textItem.setFont(QFont("Sans Serif", pointSize=fontSize + self.labelRelSize))
-                        # textItem.setPlainText(self.xaxis+"= "+str(jval))
-                        textItem.setPlainText(str(jval))
+                        # textItem.setPlainText(self.xaxis+"= "+val2str(jval))
+                        textItem.setPlainText(val2str(jval))
                         textBR = textItem.sceneBoundingRect()
                         # height/10 is the arbitary spacing that separates labels from images
                         # Subtract textBR.height() on Y so that the bottom of the text is always imHeight/10 from the image
@@ -1117,8 +1122,8 @@ class Ui(QtWidgets.QMainWindow):
                     if ival is not None and j == 0:
                         textItem = QGraphicsTextItem()
                         textItem.setFont(QFont("Sans Serif", pointSize=fontSize + self.labelRelSize))
-                        # textItem.setPlainText(self.yaxis+"= "+str(ival))
-                        textItem.setPlainText(str(ival))
+                        # textItem.setPlainText(self.yaxis+"= "+val2str(ival))
+                        textItem.setPlainText(val2str(ival))
                         textItem.setRotation(-90)
                         textBR = textItem.sceneBoundingRect()
                         textItem.setPos(imagePos + QPointF(-labelSpacing - textBR.width(), imHeight/2 + textBR.height()/2))
@@ -1193,7 +1198,7 @@ class Ui(QtWidgets.QMainWindow):
         textItem.setFont(QFont("Sans Serif", pointSize=fontSize + self.labelRelSize))
         text = ""
         for param,value in self.paramDict.items():
-            if len(value) == 1: text += param + "=" + str(value[0]) + ", "
+            if len(value) == 1: text += param + "=" + val2str(value[0]) + ", "
         if text: text = text[:-2]   # Remove trailing ", " if not empty
         textItem.setPlainText(text)
         textBR = textItem.sceneBoundingRect()
