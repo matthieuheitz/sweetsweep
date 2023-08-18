@@ -1,7 +1,7 @@
 from .sweep import parameter_sweep, parameter_sweep_parallel, get_num_exp
 
 # Define version here
-__version__ = '0.1.3'
+__version__ = '0.1.4'
 
 
 # Command reminder for building the package
