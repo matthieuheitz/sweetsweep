@@ -354,13 +354,31 @@ def make_param_dict_list_recursive(param_dict, current_dict, param_index):
     return param_dict_list
 
 
+##################
+# PARALLEL SWEEP #
+##################
+
+
 # Same function as above, except that it runs the sweep with a multiprocessing pool of `max_workers` workers.
 # The results are written individually to the CSV file as they are produced, so that it's always readable
 # during the sweep
 def parameter_sweep_parallel(param_dict, experiment_func, sweep_dir, max_workers=4, start_index=0, result_csv_filename=""):
 
     import pathos.multiprocessing as mp
+    # import multiprocessing as mp
     from pathos.helpers import mp as pathos_multiprocess
+    import contextlib
+    
+    # Function to print to file
+    def print_to_file(file,print_str):
+        with open(file, mode='a+') as f:
+            f.write(print_str+"\n")
+
+    # Function to print to stdout and to file
+    def multiple_print(print_str,stdout=True,f_output=True,f_output_ordered=True):
+        if stdout: print(print_str)
+        if f_output: print_to_file(os.path.join(sweep_dir,"output.txt"),print_str)
+        if f_output_ordered: print_to_file(os.path.join(sweep_dir,"output-ordered.txt"),print_str)
 
     if not param_dict:
         print("The parameter dictionary is empty. Nothing to do.")
@@ -373,30 +391,40 @@ def parameter_sweep_parallel(param_dict, experiment_func, sweep_dir, max_workers
         current_dict[k] = param_dict[k][0]
         num_exp *= len(param_dict[k])
 
-    print("\nThere are ",num_exp,"experiments in total.\n")
+    multiple_print("There are %d experiments in total.\n"%num_exp)
 
     # Get list of parameter dictionaries (one for each experiment)
     param_dict_list = make_param_dict_list(param_dict)
 
     # Experiment worker
-    def run_experiment(exp_id, current_dict, result_queue):
+    def worker_run_experiment(exp_id, current_dict, result_queue):
         # Create a folder for that experiment
         exp_dir = os.path.join(sweep_dir, ("exp_%0" + str(len(str(num_exp))) + "d_") % exp_id)
         for k, v in current_dict.items():
             exp_dir += "_" + k + str(v)
         os.makedirs(exp_dir, exist_ok=True)
 
-        # Run the experiment
-        result_dict = experiment_func(exp_id, current_dict, exp_dir)
+        print("\nExperiment %d: START\n"%exp_id)    # Indicates when each experiment starts
+        # Redirect stdout and stderr in buffer variable
+        with contextlib.redirect_stdout(io.StringIO()) as buff_out, contextlib.redirect_stderr(sys.stdout):
+
+            # Run the experiment
+            result_dict = experiment_func(exp_id, current_dict, exp_dir)
+            
+            # Get stdout
+            exp_stdout = buff_out.getvalue()
+
+        # Experiments are finished when their output is printed
+        multiple_print(exp_stdout,stdout=True,f_output=True,f_output_ordered=False)
 
         # Send to queue to write results
         if result_csv_filename:
             if result_dict:
                 result_queue.put((exp_id, current_dict, result_dict))
             else:
-                print("WARNING: Experiment %d - can't write results to CSV, received 'None' from experiment_func()."%exp_id)
+                multiple_print("WARNING: Experiment %d - can't write results to CSV, received 'None' from experiment_func()."%exp_id)
 
-        return result_dict
+        return result_dict, exp_stdout
 
     # Result writing listener
     def write_results_to_csv(result_queue):
@@ -429,6 +457,9 @@ def parameter_sweep_parallel(param_dict, experiment_func, sweep_dir, max_workers
         # Put listener to work first
         watcher = pool.apply_async(write_results_to_csv, (queue,))
         # Spawn workers
-        pool.starmap(run_experiment, zip(range(start_index,num_exp+start_index), param_dict_list, [queue]*num_exp))
+        res = pool.starmap(worker_run_experiment, zip(range(start_index,num_exp+start_index), param_dict_list, [queue]*num_exp))
+    
+    # Print outputs
+    multiple_print("".join([r[1] for r in res]),stdout=False,f_output=False,f_output_ordered=True)
+    multiple_print("Total time of all experiments: %g"%(time.time()-t0))
 
-    print("Total time of all experiments:",time.time()-t0)
