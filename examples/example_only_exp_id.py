@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 
+# This example demonstrates how to ask sweetsweep to only run one of the experiments.
+# This is useful when running an array job in an HPC cluster, as each job of the array will call the same script with one index integer parameter changing.
+# An example of how to run array jobs on the Alliance Canada HPC cluster can be found here: https://docs.alliancecan.ca/wiki/Job_arrays
+# You can pass the array job index to this script using '--only-exp-id N'. The code below processes it, and will run only the corresponding experiment.
+# It's also useful to call this script beforehand with '--get-num-exp', to obtain the number of array jobs that will be submitted, and not entering it manually.
+
 import os
 import sys
 import math
@@ -9,6 +15,7 @@ import time
 
 import sweetsweep
 
+
 # Create the dictionary of values to sweep for each parameter
 # For example:
 param_sweep = {}
@@ -16,10 +23,8 @@ param_sweep["alpha"] = [5, 10, 15]
 param_sweep["beta"] = [0.1, 0.2, 0.5]
 param_sweep["gamma"] = ["Red", "Blue"]
 
-
-specific_dict = {"beta": {'alpha': 10}}
-skip_dict = {'alpha': 5, "gamma": 'Blue'}
-# skip_dict = {'alpha': 10, "beta": 0.1, "gamma": 'Blue'}
+## ------------------------------------
+# Process argv parameters
 
 # Don't print anything before this line
 if '--get-num-exp' in sys.argv:
@@ -29,6 +34,9 @@ if '--get-num-exp' in sys.argv:
 only_exp_id = None
 if '--only-exp-id' in sys.argv:
     only_exp_id = int(sys.argv[sys.argv.index('--only-exp-id')+1])
+
+## ------------------------------------
+
 
 my_sweep_dir = "my_sweep"   # Default output dir
 # Main folder for the sweep
@@ -98,7 +106,4 @@ def my_experiment(exp_id, param_dict, exp_dir):
 
 
 # Run the sweep, the function creates and fills the CSV for you
-# sweetsweep.parameter_sweep(param_sweep, my_experiment, my_sweep_dir, result_csv_filename=csv_filename, only_exp_id=only_exp_id)
-sweetsweep.parameter_sweep(param_sweep, my_experiment, my_sweep_dir, result_csv_filename=csv_filename, skip_exps=skip_dict, specific_dict=specific_dict, only_exp_id=only_exp_id)
-# sweetsweep.parameter_sweep(param_sweep, my_experiment, my_sweep_dir, result_csv_filename=csv_filename, skip_exps=skip_dict, specific_dict=specific_dict, only_exp_id=only_exp_id, start_index=3)
-# sweetsweep.parameter_sweep_parallel(param_sweep, my_experiment, my_sweep_dir, result_csv_filename=csv_filename)
+sweetsweep.parameter_sweep(param_sweep, my_experiment, my_sweep_dir, result_csv_filename=csv_filename, only_exp_id=only_exp_id)
