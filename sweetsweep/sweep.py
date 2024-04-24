@@ -167,7 +167,7 @@ class Logger(object):
 def csv_write_result(csv_path, csv_row_prefix, result_dict={}):
     # Save additional results by writing them to the CSV
     with open(csv_path, mode='a') as csv_file:
-        csv_writer = csv.writer(csv_file)
+        csv_writer = csv.writer(csv_file,quoting=csv.QUOTE_NONNUMERIC)
         csv_row = csv_row_prefix + list(result_dict.values())  # Write returned data
         csv_writer.writerow(csv_row)
 
@@ -191,12 +191,12 @@ def csv_write_header(csv_path, current_dict, result_dict):
     # Check if header exists
     file_exists = os.path.exists(csv_path)
     if file_exists:
-        if file_get_first_line(csv_path).startswith("exp_id"):
+        if file_get_first_line(csv_path).startswith('"exp_id"'):
             return
 
     # Build the CSV header
     header_line = io.StringIO()
-    writer = csv.writer(header_line)
+    writer = csv.writer(header_line,quoting=csv.QUOTE_NONNUMERIC)
     csv_header = ["exp_id", "src_exp_id"] + list(current_dict.keys()) + list(result_dict.keys())
     writer.writerow(csv_header)
     header_str = header_line.getvalue()
@@ -431,7 +431,7 @@ def parameter_sweep_parallel(param_dict, experiment_func, sweep_dir, max_workers
 
             # Save additional results by writing them to the CSV
             with open(os.path.join(sweep_dir, result_csv_filename), mode='a') as csv_file:
-                csv_writer = csv.writer(csv_file)
+                csv_writer = csv.writer(csv_file,quoting=csv.QUOTE_NONNUMERIC)
                 # Only on first call received, write the CSV header
                 if write_header:
                     csv_writer.writerow(["exp_id"] + list(exp_param_dict.keys()) + list(result_dict.keys()))
