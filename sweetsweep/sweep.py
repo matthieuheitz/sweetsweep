@@ -110,15 +110,9 @@ def parameter_sweep(param_dict, experiment_func, sweep_dir, start_index=0, resul
                     except FileExistsError:
                         pass
 
-                    # Write the results in the CSV
                     # The results are the same as for src_exp_id, so don't rewrite them,
-                    # just write src_exp_id and the set of parameters.
-                    if result_csv_filename:
-                        # Save additional results by writing them to the CSV
-                        with open(csv_path, mode='a') as csv_file:
-                            csv_writer = csv.writer(csv_file)
-                            # csv_row += list(result_dict.values())   # Write returned data
-                            csv_writer.writerow(csv_row_prefix)
+                    # 'src_exp_id" in the csv_row_prefix leads to the source experiment
+                    result_dict = {}
 
                 # Otherwise, run the experiment
                 else:
@@ -127,16 +121,16 @@ def parameter_sweep(param_dict, experiment_func, sweep_dir, start_index=0, resul
                     # Run the experiment
                     result_dict = experiment_func(exp_id, current_dict, exp_dir)
 
-                    if result_csv_filename:
-                        if not result_dict:
-                            print("WARNING: Experiment %d - can't write results to CSV, didn't receive results "
-                                  "from experiment_func()." % exp_id)
+                    if not result_dict:
+                        print("WARNING: Experiment %d - can't write results to CSV, didn't receive results "
+                                "from experiment_func()." % exp_id)
 
-                        # Write the header (does nothing if already written)
-                        csv_write_header(csv_path, current_dict, result_dict)
+                if result_csv_filename:
+                    # Write the header (does nothing if already written)
+                    csv_write_header(csv_path, current_dict, result_dict)
 
-                        # Write results to the CSV
-                        csv_write_result(csv_path, csv_row_prefix, result_dict)
+                    # Write results to the CSV
+                    csv_write_result(csv_path, csv_row_prefix, result_dict)
 
                 exp_id = exp_id + 1
 
@@ -170,7 +164,7 @@ class Logger(object):
 
 
 # Write results of one experiment in the CSV (one single line)
-def csv_write_result(csv_path, csv_row_prefix, result_dict):
+def csv_write_result(csv_path, csv_row_prefix, result_dict={}):
     # Save additional results by writing them to the CSV
     with open(csv_path, mode='a') as csv_file:
         csv_writer = csv.writer(csv_file)
