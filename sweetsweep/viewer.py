@@ -777,12 +777,13 @@ class Ui(QtWidgets.QMainWindow):
             header = next(csv_reader)
             csv_all = [row for row in csv_reader]
         csv_dict = {row[0]: row[1:] for row in csv_all if row}
-        # Replace values in redundant experiments
-        for row in csv_all:
-            src_exp_id = row[1] if "src_exp_id" in row else "-1"
-            row_prefix_len = len(row)
-            if src_exp_id != '-1':
-                row += csv_dict[src_exp_id][row_prefix_len - 1:]
+        # Replace values in redundant experiments if any
+        if "src_exp_id" in header:
+            for row in csv_all:
+                src_exp_id = row[1]
+                if src_exp_id != '-1':
+                    row += csv_dict[src_exp_id][len(row) - 1:]
+        # Rewrite CSV file in a string
         imputed_csv_file = "\n".join([",".join(row) for row in [header] + csv_all])
         try:
             self.resultArray = np.genfromtxt(io.StringIO(imputed_csv_file), delimiter=',', names=True, dtype=None, encoding=None)
