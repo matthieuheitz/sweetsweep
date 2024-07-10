@@ -1193,25 +1193,27 @@ class Ui(QtWidgets.QMainWindow):
                 textItem.setTextWidth(imHeight)
                 self.scene.addItem(textItem)
 
-        # Hide the progress bar
-        if show_pbar: self.progressBar.hide()
+            # Hide the progress bar
+            if show_pbar: self.progressBar.hide()
 
-        # Add main title
         # Compute view rectangle
         self.sceneRect = self.scene.itemsBoundingRect()
         self.viewRect = QRectF(self.sceneRect)
         # self.scene.addRect(self.viewRect)  # Plot the view rectangle
-        textItem = QGraphicsTextItem()
-        textItem.setFont(QFont("Sans Serif", pointSize=fontSize + self.labelRelSize))
-        text = ""
-        for param,value in self.paramDict.items():
-            if len(value) == 1: text += param + "=" + val2str(value[0]) + ", "
-        if text: text = text[:-2]   # Remove trailing ", " if not empty
-        textItem.setPlainText(text)
-        textBR = textItem.sceneBoundingRect()
-        textItem.setPos(self.sceneRect.center() - QPointF(textBR.width()/2,
-                        self.sceneRect.height()/2 + labelSpacing + textBR.height()))
-        self.scene.addItem(textItem)
+
+        if not plot_resultMatrix:
+            # Add main title
+            textItem = QGraphicsTextItem()
+            textItem.setFont(QFont("Sans Serif", pointSize=fontSize + self.labelRelSize))
+            text = ""
+            for param,value in self.paramDict.items():
+                if len(value) == 1: text += param + "=" + val2str(value[0]) + ", "
+            if text: text = text[:-2]   # Remove trailing ", " if not empty
+            textItem.setPlainText(text)
+            textBR = textItem.sceneBoundingRect()
+            textItem.setPos(self.sceneRect.center() - QPointF(textBR.width()/2,
+                            self.sceneRect.height()/2 + labelSpacing + textBR.height()))
+            self.scene.addItem(textItem)
 
         # Recompute view rectangle
         self.sceneRect = self.scene.itemsBoundingRect()
