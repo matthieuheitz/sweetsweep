@@ -950,7 +950,7 @@ class Ui(QtWidgets.QMainWindow):
                 # Create matrix of results
                 # If some values are missing (e.g. sweep not finished)
                 resultMatrix_dtype = type(self.resultArray[0][self.resultName])
-                if np.sum(non_axis_bool_array) < nValuesX * nValuesY:
+                if np.sum(non_axis_bool_array) != nValuesX * nValuesY * nValuesX2 * nValuesY2:
                     self.print("WARNING: Missing some result values.")
                     # Changing array to float to be able to replace missing values with NaNs
                     resultMatrix_dtype = float
@@ -966,6 +966,8 @@ class Ui(QtWidgets.QMainWindow):
                     for j2, j2val in enumerate(x2range):
                         ax = fig.add_subplot(nValuesY2,nValuesX2,i2*nValuesX2+j2+1)
 
+                        # Reset resultMatrix just in case
+                        resultMatrix.fill(0)
                         # Plot text and fill resultMatrix
                         for i, ival in enumerate(yrange):
                             for j, jval in enumerate(xrange):
