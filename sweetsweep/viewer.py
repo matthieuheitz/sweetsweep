@@ -39,6 +39,11 @@ else:
 #  - In the Save part, above the path field, add one checkbox per parameter that adds/removes its value to the end
 #    of the filename, no need to rewrite the parameter names next to the checkboxes, a title and tiptools are enough.
 #    Also, an option to toggle the title would be nice as well
+#  - Add a title also when in result matrix mode
+
+# BUG
+#  - When in nested result matrix mode, updates are very slow, find out why
+#  - When in nested result matrix mode, clicking on text size changes it twice (signal received twice?)
 
 
 # Because I use a "trick" to hide items of a QComboBox through its QListView,
