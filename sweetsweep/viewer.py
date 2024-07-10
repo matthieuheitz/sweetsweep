@@ -888,39 +888,10 @@ class Ui(QtWidgets.QMainWindow):
                     self.currentImagePaths[i,j] = file
 
         # If we didn't find any images, stop drawing
-        if np.all(self.currentImagePaths == ""):
+        if np.all(self.currentImagePaths == "") and not plot_resultMatrix:
             self.print("Error: no file in the folder(s) matches the pattern.")
             return
 
-        # Assume all image dimensions are those of the first valid image
-        imIndex = np.argmax(self.currentImagePaths.flatten() != "")
-        i,j = np.unravel_index(imIndex,self.currentImagePaths.shape)
-        if reload_images:
-            self.currentImages[i,j] = QPixmap(self.currentImagePaths[i,j])
-        cropRect = self.getImageCroppingRect(self.currentImages[i,j])
-        pc = self.currentImages[i,j].copy(cropRect)
-        # Get image dimension after cropping
-        imWidth = pc.width()
-        imHeight = pc.height()
-
-        # Get dimensions of the scene to compute font size
-        viewSize = self.graphicsView.size()
-        sceneSize = QSize(nValuesX*(imWidth+self.imageSpacing[0]), nValuesY*(imHeight+self.imageSpacing[1]))
-        maxViewSize = max(viewSize.width(), viewSize.height())
-        maxSceneSize = max(sceneSize.width(), sceneSize.height())
-        # print("Image size:",sceneSize)
-        # print("View size:",self.graphicsView.size())
-        # print("Point size:",txt.font().pointSize())
-        # It's very difficult to find a formula that gives a good font size in all situations, because it
-        # depends on the size of the images, and the number of images (so the size of the drawing).
-        # But for confortable viewing, it should also depend on how large the graphicsview widget is, even
-        # though the content of that window should be agnostic to the size of the window we visualize it in.
-        # fontSize = 60
-        # fontSize = int(maxSceneSize/40)
-        fontSize = int(maxSceneSize / maxViewSize * 20)
-        # Spacing between labels and images
-        # labelSpacing = max(imWidth,imHeight)/20
-        labelSpacing = fontSize*0.75
 
         # If we need to show results
         if self.resultName != self.comboBox_noneChoice:
@@ -933,10 +904,6 @@ class Ui(QtWidgets.QMainWindow):
                 non_axis_bool_array = np.ones(self.resultArray.shape,dtype=bool)
             else:
                 non_axis_bool_array = np.logical_and.reduce([self.resultArray[p] == self.paramDict[p][0] for p in non_axis_params])
-
-        # Show a progress bar
-        show_pbar = nValuesX*nValuesY > 1 and reload_images
-        if show_pbar: self.progressBar.show()
 
         # If display result matrix
         if plot_resultMatrix:
@@ -1067,6 +1034,42 @@ class Ui(QtWidgets.QMainWindow):
                 self.scene.addWidget(canvas)
 
         else:  # If display image matrix
+
+            # Assume all image dimensions are those of the first valid image
+            imIndex = np.argmax(self.currentImagePaths.flatten() != "")
+            i,j = np.unravel_index(imIndex,self.currentImagePaths.shape)
+            if reload_images:
+                self.currentImages[i,j] = QPixmap(self.currentImagePaths[i,j])
+            cropRect = self.getImageCroppingRect(self.currentImages[i,j])
+            pc = self.currentImages[i,j].copy(cropRect)
+            # Get image dimension after cropping
+            imWidth = pc.width()
+            imHeight = pc.height()
+
+            # Get dimensions of the scene to compute font size
+            viewSize = self.graphicsView.size()
+            sceneSize = QSize(nValuesX*(imWidth+self.imageSpacing[0]), nValuesY*(imHeight+self.imageSpacing[1]))
+            maxViewSize = max(viewSize.width(), viewSize.height())
+            maxSceneSize = max(sceneSize.width(), sceneSize.height())
+            # print("Image size:",sceneSize)
+            # print("View size:",self.graphicsView.size())
+            # print("Point size:",txt.font().pointSize())
+            # It's very difficult to find a formula that gives a good font size in all situations, because it
+            # depends on the size of the images, and the number of images (so the size of the drawing).
+            # But for confortable viewing, it should also depend on how large the graphicsview widget is, even
+            # though the content of that window should be agnostic to the size of the window we visualize it in.
+            # fontSize = 60
+            # fontSize = int(maxSceneSize/40)
+            fontSize = int(maxSceneSize / maxViewSize * 20)
+            # Spacing between labels and images
+            # labelSpacing = max(imWidth,imHeight)/20
+            labelSpacing = fontSize*0.75
+
+            # Show a progress bar
+            show_pbar = nValuesX*nValuesY > 1 and reload_images
+            if show_pbar: self.progressBar.show()
+
+
             # Draw images and labels
             for i, ival in enumerate(yrange):
                 for j, jval in enumerate(xrange):
