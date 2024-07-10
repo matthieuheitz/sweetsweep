@@ -903,7 +903,9 @@ class Ui(QtWidgets.QMainWindow):
             if len(non_axis_params) == 0:
                 non_axis_bool_array = np.ones(self.resultArray.shape,dtype=bool)
             else:
-                non_axis_bool_array = np.logical_and.reduce([self.resultArray[p] == self.paramDict[p][0] for p in non_axis_params])
+                # When a param has values with different types (e.g. num and str), it must be stored as the same type in resultArray.
+                # So for comparing it with what's in paramDict, we need to use the same type as the one used in resultArray.
+                non_axis_bool_array = np.logical_and.reduce([self.resultArray[p] == self.resultArray.dtype[p].type(self.paramDict[p][0]) for p in non_axis_params])
 
         # If display result matrix
         if plot_resultMatrix:
@@ -964,10 +966,10 @@ class Ui(QtWidgets.QMainWindow):
                             for j, jval in enumerate(xrange):
                                 # Get corresponding result
                                 bool_array = non_axis_bool_array.copy()
-                                if self.xaxis != self.comboBox_noneChoice: bool_array = np.logical_and(bool_array,self.resultArray[self.xaxis] == jval)
-                                if self.yaxis != self.comboBox_noneChoice: bool_array = np.logical_and(bool_array,self.resultArray[self.yaxis] == ival)
-                                if self.x2axis != self.comboBox_noneChoice: bool_array = np.logical_and(bool_array,self.resultArray[self.x2axis] == j2val)
-                                if self.y2axis != self.comboBox_noneChoice: bool_array = np.logical_and(bool_array,self.resultArray[self.y2axis] == i2val)
+                                if self.xaxis != self.comboBox_noneChoice: bool_array = np.logical_and(bool_array,self.resultArray[self.xaxis] == self.resultArray[self.xaxis].dtype.type(jval))
+                                if self.yaxis != self.comboBox_noneChoice: bool_array = np.logical_and(bool_array,self.resultArray[self.yaxis] == self.resultArray[self.yaxis].dtype.type(ival))
+                                if self.x2axis != self.comboBox_noneChoice: bool_array = np.logical_and(bool_array,self.resultArray[self.x2axis] == self.resultArray[self.x2axis].dtype.type(j2val))
+                                if self.y2axis != self.comboBox_noneChoice: bool_array = np.logical_and(bool_array,self.resultArray[self.y2axis] == self.resultArray[self.y2axis].dtype.type(i2val))
 
                                 txt = None
                                 if np.count_nonzero(bool_array) == 0: # the result is not in the csv, so don't display anything
@@ -1142,8 +1144,8 @@ class Ui(QtWidgets.QMainWindow):
                         # Get row corresponding to the current set of parameters in result array
                         # It's probably faster to get it by exp_id, but this is fast enough for now, and it's more reliable
                         bool_array = non_axis_bool_array.copy()
-                        if self.xaxis != self.comboBox_noneChoice: bool_array = np.logical_and(bool_array,self.resultArray[self.xaxis] == jval)
-                        if self.yaxis != self.comboBox_noneChoice: bool_array = np.logical_and(bool_array,self.resultArray[self.yaxis] == ival)
+                        if self.xaxis != self.comboBox_noneChoice: bool_array = np.logical_and(bool_array,self.resultArray[self.xaxis] == self.resultArray[self.xaxis].dtype.type(jval))
+                        if self.yaxis != self.comboBox_noneChoice: bool_array = np.logical_and(bool_array,self.resultArray[self.yaxis] == self.resultArray[self.yaxis].dtype.type(ival))
 
                         # If np.count_nonzero(bool_array) == 0, the result is not in the csv, so don't display anything
                         if np.count_nonzero(bool_array) > 1:
