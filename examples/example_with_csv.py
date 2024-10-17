@@ -14,6 +14,8 @@ param_sweep = {}
 param_sweep["alpha"] = [5, 10, 15]
 param_sweep["beta"] = [0.1, 0.2, 0.5]
 param_sweep["gamma"] = ["Red", "Blue"]
+param_sweep["tau"] = [True, False]
+
 
 # Main folder for the sweep
 my_sweep_dir = "./my_sweep_with_csv"
@@ -64,6 +66,8 @@ def my_experiment(exp_id, param_dict, exp_dir):
     # For example:
     plt.figure(figsize=(10, 10))
     plt.plot(x, c=param_dict["gamma"])
+    if param_dict["tau"]:
+        plt.title("Sinusoidal function")
     plt.savefig(os.path.join(exp_dir, image_filename), bbox_inches="tight")
     plt.close()
 
