@@ -552,9 +552,9 @@ class Ui(QtWidgets.QMainWindow):
             # and later call draw_graphics()
         if "viewer_resultsCSV" in self.fullParamDict:
             self.resultsCSV = self.fullParamDict["viewer_resultsCSV"]
+            del self.fullParamDict["viewer_resultsCSV"]
             # Read CSV
             self.read_resultsCSV(os.path.join(os.path.dirname(path), self.resultsCSV))
-            del self.fullParamDict["viewer_resultsCSV"]
         if "viewer_notesFile" in self.fullParamDict:
             self.notesFile = os.path.join(self.mainFolder,self.fullParamDict["viewer_notesFile"])
             del self.fullParamDict["viewer_notesFile"]
@@ -798,6 +798,8 @@ class Ui(QtWidgets.QMainWindow):
             self.print("Exception:", e)
             self.print("Unable to read result file '%s'." % self.resultsCSV)
             self.allResultNames = []
+        # Filter resultArray from param values that are not in the parameter list (for custom config files which skip some parameter values)
+        self.resultArray = self.resultArray[np.logical_and.reduce([np.isin(self.resultArray[p],self.fullParamDict[p]) for p in self.allParamNames])]
 
     def draw_graphics(self, reload_images=True, reset_view=True):
         """
