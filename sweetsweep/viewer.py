@@ -16,7 +16,7 @@ import argparse
 from PyQt5 import QtCore, QtWidgets, uic
 from PyQt5.QtCore import Qt, QRect, QRectF, QPoint, QPointF, QSize, QSizeF, QLineF
 from PyQt5.QtWidgets import QGraphicsView, QLabel, QFileDialog, QComboBox, QGraphicsPixmapItem, QDesktopWidget, QGraphicsTextItem, QPushButton, QGroupBox, QFrame
-from PyQt5.QtGui import QPixmap, QPen, QColor, QImage, QPainter, QFont
+from PyQt5.QtGui import QPixmap, QPen, QColor, QImage, QPainter, QFont, QImageReader
 
 import matplotlib
 matplotlib.use('Qt5Agg')
@@ -933,6 +933,7 @@ class Ui(QtWidgets.QMainWindow):
                 # canvas = MplCanvas(self, width=7*np.cbrt(nValuesX2), height=7*np.cbrt(nValuesY2), dpi=500)
                 canvas = MplCanvas(self, width=nValuesX*nValuesX2, height=nValuesY*nValuesY2, dpi=500)
                 # canvas = MplCanvas(self, width=7, height=7, dpi=500)
+                self.MPLcanvas = canvas # Store canvas
                 # ax = canvas.axes
                 fig = canvas.figure
 
@@ -1257,17 +1258,28 @@ class Ui(QtWidgets.QMainWindow):
         # If file is a relative path, we save it in the input folder.
         if not file.startswith('/'):
             file = os.path.join(self.mainFolder,file)
-        # Save the scene
-        # From https://stackoverflow.com/a/11642517/4195725
-        self.scene.clearSelection()
-        self.scene.setSceneRect(self.scene.itemsBoundingRect())
-        image = QImage((self.scene.sceneRect().size()*self.doubleSpinBox_ImageReduction.value()).toSize(),QImage.Format_ARGB32)
-        # image.fill(Qt.transparent)
-        image.fill(Qt.white)
-        painter = QPainter(image)
-        self.scene.render(painter)
-        image.save(file)
-        del painter
+        # Saving a vector image 
+        is_vector = file.endswith((".pdf",".eps",".ps",".svg"))
+        is_raster = file.endswith(tuple(fmt.data().decode() for fmt in QImageReader.supportedImageFormats()))
+        if is_vector and self.checkBox_resultMatrix.isChecked():
+            self.MPLcanvas.figure.savefig(file)
+        elif is_vector and not self.checkBox_resultMatrix.isChecked():
+            self.print("ERROR: Saving to vector image is only available in result matrix mode.")
+        elif is_raster: # Raster image saving
+            # Save the scene
+            # From https://stackoverflow.com/a/11642517/4195725
+            self.scene.clearSelection()
+            self.scene.setSceneRect(self.scene.itemsBoundingRect())
+            image = QImage((self.scene.sceneRect().size()*self.doubleSpinBox_ImageReduction.value()).toSize(),QImage.Format_ARGB32)
+            # image.fill(Qt.transparent)
+            image.fill(Qt.white)
+            painter = QPainter(image)
+            self.scene.render(painter)
+            if not image.save(file):
+                self.print("ERROR: Image could not be saved. Try another image format.")
+            del painter
+        else:
+            self.print("ERROR: Unsupported file format.")
 
         return
 
