@@ -40,10 +40,14 @@ else:
 #    of the filename, no need to rewrite the parameter names next to the checkboxes, a title and tiptools are enough.
 #    Also, an option to toggle the title would be nice as well
 #  - Add a title also when in result matrix mode
+#  - Allow to input text for the file pattern
+#  - Handle partial results in read_resultsCSV()
 
 # BUG
 #  - When in nested result matrix mode, updates are very slow, find out why
 #  - When in nested result matrix mode, clicking on text size changes it twice (signal received twice?)
+#  - When in nested result matrix mode, with one or both of X2, Y2 active, then toggling the result matrix checkbox doesn't leave the matrix mode properly,
+# e.g. it doesn't release the X2/Y2 active parameters, and they stay greyed out.
 
 
 # Because I use a "trick" to hide items of a QComboBox through its QListView,
