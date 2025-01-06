@@ -11,7 +11,7 @@ import json
 matplotlib.use("Agg")
 
 
-my_sweep_dir = "../test-sweep-specific-dict"
+my_sweep_dir = "test-sweep-specific-dict"
 os.makedirs(my_sweep_dir, exist_ok=True)
 
 
@@ -38,7 +38,18 @@ skip_exps = []
 skip_exps.append({"N":[10], "E":[0.2,0.3]})
 
 
-json.dump(param_sweep, open(os.path.join(my_sweep_dir, "sweep.txt"), "w"))
+# Name of the image to save
+image_filename = "test.png"
+# Name of the csv file to save (one row per experiment)
+csv_filename = "results.csv"
+
+# Save the param_sweep file
+params = param_sweep.copy()
+# Add parameters for the viewer if you need (see README.md)
+params["viewer_filePattern"] = image_filename
+# params["viewer_cropLBRT"] = [0, 0, 0, 0]
+params["viewer_resultsCSV"] = csv_filename
+json.dump(params, open(os.path.join(my_sweep_dir, "sweep.txt"), "w"))
 
 
 def test(exp_id, exp_param_dict, exp_dir):
