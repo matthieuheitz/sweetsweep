@@ -863,8 +863,8 @@ class Ui(QtWidgets.QMainWindow):
                 for j, jval in enumerate(xrange):
                     # Find the correct folder
                     dirs = used_dirs.copy()
-                    if ival is not None: dirs = [d for d in dirs if re.search(re.escape(self.yaxis+val2str(ival))+"(_|$)", d)]
-                    if jval is not None: dirs = [d for d in dirs if re.search(re.escape(self.xaxis+val2str(jval))+"(_|$)", d)]
+                    if ival is not None: dirs = [d for d in dirs if re.search("_"+re.escape(self.yaxis+val2str(ival))+"(_|$)", d)]
+                    if jval is not None: dirs = [d for d in dirs if re.search("_"+re.escape(self.xaxis+val2str(jval))+"(_|$)", d)]
                     if len(dirs) == 0: self.print("Error: no folder matches the set of parameters"); continue
                     if len(dirs) > 1: self.print("Error: multiple folders match the set of parameters:", *dirs); continue
                     currentDir = dirs[0]
