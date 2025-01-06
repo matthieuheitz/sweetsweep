@@ -781,6 +781,7 @@ class Ui(QtWidgets.QMainWindow):
             csv_reader = csv.reader(csv_file)
             header = next(csv_reader)
             csv_all = [row for row in csv_reader]
+        # Make dict for faster lookup
         csv_dict = {row[0]: row[1:] for row in csv_all if row}
         # Replace values in redundant experiments if any
         if "src_exp_id" in header:
@@ -788,6 +789,10 @@ class Ui(QtWidgets.QMainWindow):
                 src_exp_id = row[1]
                 if src_exp_id != '-1':
                     row += csv_dict[src_exp_id][len(row) - 1:]
+        # Remove rows that don't have (enough) results
+        # TODO: In the long term, I should be able to handle partial results.
+        # So I should keep the row and just replace np.genfromtxt with pd.read_csv...
+        csv_all = [row for row in csv_all if len(row)==len(header)]
         # Rewrite CSV file in a string
         imputed_csv_file = "\n".join([",".join(row) for row in [header] + csv_all])
         try:
