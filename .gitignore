@@ -1,5 +1,6 @@
 # IDEA files
 .idea/
+launch.json
 
 # Python cache files
 __pycache__/
@@ -12,3 +13,4 @@ dist/
 
 # Sweep folders
 my_sweep*/
+test*/
