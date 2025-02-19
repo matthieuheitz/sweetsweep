@@ -394,8 +394,6 @@ def parameter_sweep_parallel(param_dict, experiment_func, sweep_dir, max_workers
     def worker_run_experiment(exp_id, current_dict, result_queue):
         # Create a folder for that experiment
         exp_dir = os.path.join(sweep_dir, build_dir_name(num_exp, exp_id, current_dict))
-        for k, v in current_dict.items():
-            exp_dir += "_" + k + str(v)
         os.makedirs(exp_dir, exist_ok=True)
 
         print("\nExperiment %d: START\n"%exp_id)    # Indicates when each experiment starts
