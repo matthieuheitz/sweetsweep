@@ -42,6 +42,7 @@ else:
 #  - Add a title also when in result matrix mode
 #  - Allow to input text for the file pattern
 #  - Handle partial results in read_resultsCSV()
+#  - Use pandas in read_resultsCSV() instead of np.genfromtxt. I can filter using masks or queries.
 
 # BUG
 #  - When in nested result matrix mode, updates are very slow, find out why
@@ -800,7 +801,7 @@ class Ui(QtWidgets.QMainWindow):
         # Rewrite CSV file in a string
         imputed_csv_file = "\n".join([",".join(row) for row in [header] + csv_all])
         try:
-            self.resultArray = np.genfromtxt(io.StringIO(imputed_csv_file), delimiter=',', names=True, dtype=None, encoding=None)
+            self.resultArray = np.genfromtxt(io.StringIO(imputed_csv_file), delimiter=',', names=True, dtype=None, encoding=None, deletechars="")
             # self.resultArray = np.genfromtxt(csv_path, delimiter=',', names=True, dtype=None, encoding=None)
             self.allResultNames = [name for name in self.resultArray.dtype.names if name not in (self.allParamNames + ["exp_id"])]
         except Exception as e:
