@@ -514,6 +514,13 @@
                     </widget>
                    </item>
                    <item>
+                    <widget class="QCheckBox" name="checkBox_logCmap">
+                     <property name="text">
+                      <string>Log</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
                     <widget class="QCheckBox" name="checkBox_uniqueCmap">
                      <property name="toolTip">
                       <string>Use the same colormap for all result matrices</string>

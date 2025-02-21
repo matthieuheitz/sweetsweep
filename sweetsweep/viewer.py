@@ -316,6 +316,7 @@ class Ui(QtWidgets.QMainWindow):
         self.checkBox_resultMatrix.stateChanged.connect(self.resultMatrix_checked)
         self.lineEdit_resultFormat.textChanged.connect(self.resultFormat_changed)
         self.checkBox_uniqueCmap.stateChanged.connect(self.uniqueCmap_checked)
+        self.checkBox_logCmap.stateChanged.connect(self.logCmap_checked)
         self.lineEdit_cmap.textChanged.connect(self.cmap_changed)
 
         # This changes the limit of the current view, ie what we see of the scene through the widget.
@@ -771,6 +772,9 @@ class Ui(QtWidgets.QMainWindow):
     def uniqueCmap_checked(self, state):
         self.draw_graphics()
 
+    def logCmap_checked(self, state):
+        self.draw_graphics()
+
     def cmap_changed(self, txt):
         try:
             matplotlib.cm.get_cmap(txt)
@@ -974,6 +978,11 @@ class Ui(QtWidgets.QMainWindow):
                     vmin = self.resultArray[non_axis_bool_array][self.resultName].min()
                     vmax = self.resultArray[non_axis_bool_array][self.resultName].max()
 
+                if self.checkBox_logCmap.isChecked():
+                    cmap_norm = matplotlib.colors.LogNorm
+                else:
+                    cmap_norm = matplotlib.colors.Normalize
+
                 # Do subplots if necessary
                 for i2, i2val in enumerate(y2range):
                     for j2, j2val in enumerate(x2range):
@@ -1005,7 +1014,7 @@ class Ui(QtWidgets.QMainWindow):
                                 ax.text(j, i, txt, va='center', ha='center', c=self.resultFontColor, bbox=text_bbox,
                                         fontsize=10+self.resultFontRelSize/2, fontweight=250*self.resultFontWeight)
                         # Plot matrix
-                        im = ax.matshow(resultMatrix, cmap=self.resultMatrixCmap, vmin=vmin, vmax=vmax)
+                        im = ax.matshow(resultMatrix, cmap=self.resultMatrixCmap, norm=cmap_norm(vmin=vmin, vmax=vmax))
                         # Change axes, ticks and labels
                         xticklabels = xrange
                         yticklabels = yrange
